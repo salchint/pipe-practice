@@ -49,7 +49,7 @@ add_executable(Tests-pipe-practice
 )
 
 target_link_libraries(Tests-pipe-practice
-    pipe-practice
+    #pipe-practice
     #${GTEST_BOTH_LIBRARIES}
     gtest
     gtest_main

@@ -52,3 +52,7 @@ install_manifest.txt
 *.pdf
 *.zip
 build/
+tests/googletest-src/
+tests/googletest-build/
+tests/googletest-download/
+
