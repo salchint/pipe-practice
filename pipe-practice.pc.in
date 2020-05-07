@@ -1,0 +1,5 @@
+Name: @CMAKE_PROJECT_NAME@
+Description: Some project
+Version: 0.0.1
+Libs: -L@CMAKE_INSTALL_PREFIX@/lib
+Cflags: -I@CMAKE_INSTALL_PREFIX@/include
