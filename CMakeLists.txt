@@ -1,6 +1,8 @@
 
 cmake_minimum_required(VERSION 2.8)
 
+set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
+
 if(APPLE)
     set(CMAKE_MACOSX_RPATH ON)
 endif()
@@ -10,7 +12,7 @@ set(CMAKE_PROJECT_FULL_NAME "Projet Name")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
-project(pipe-practice CXX)
+project(pipe-practice C)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++14")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --std=c++14")
