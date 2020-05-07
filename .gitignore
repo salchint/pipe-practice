@@ -51,3 +51,4 @@ install_manifest.txt
 
 *.pdf
 *.zip
+build/
