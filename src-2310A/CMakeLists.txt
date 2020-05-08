@@ -20,6 +20,7 @@ add_executable(
     ${sources}
     ${headers}
 )
+target_link_libraries(2310A m)
 
 install(
   TARGETS 2310A

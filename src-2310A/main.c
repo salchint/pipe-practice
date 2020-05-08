@@ -4,6 +4,17 @@
 #include <string.h>
 #include <ctype.h>
 #include "../inc/errorReturn.h"
+#include "../inc/protocol.h"
+
+Path path;
+
+/*
+ *Request the path information from the dealer.
+ */
+void getPath(int playersCount) {
+    player_request_path(stdout);
+    player_read_path(stdout, playersCount, &path);
+}
 
 int main(int argc, char* argv[]) {
     int playersCount = 0;

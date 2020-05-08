@@ -2,6 +2,9 @@
  *errorReturn.h
  */
 
+#ifndef __ERRORO_RETURN_H__
+#define __ERRORO_RETURN_H__
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -9,6 +12,7 @@
   *Error codes used upon exiting the program.
   */
 enum PlayerErrorCodes {
+    E_OK = 0,
     E_INVALID_ARGS_COUNT = 1,
     E_INVALID_PLAYER_COUNT = 2,
     E_INVALID_PLAYER_ID = 3,
@@ -37,4 +41,6 @@ void errorReturn(FILE* destination, enum PlayerErrorCodes code) {
     fprintf(destination, "%s\n", PlayerErrorTexts[code]);
     exit(code);
 }
+
+#endif
 
