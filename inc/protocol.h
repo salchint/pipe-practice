@@ -389,5 +389,28 @@ void player_calculate_rankings(const int* positions, int* rankings,
     calculate_rankings(positions, rankings, playersCount);
 }
 
+/*
+ *Find the next site matching the given site type.
+ */
+int player_find_x_site_ahead(enum SiteTypes type, const int* positions,
+        int ownId, const Path* path) {
+    int i = 0;
+    for (i = positions[ownId] + 1; i < path->siteCount; i++) {
+        if (type == path->sites[i].type) {
+                return i;
+        }
+    }
+    return -1;
+}
+
+/*
+ *Let this player move forward to the site specified.
+ */
+void player_forward_to(FILE* output, int siteIdx, int* positions, int ownId) {
+    positions[ownId] = siteIdx;
+    fprintf(output, "DO%d\n", siteIdx);
+}
+
+
 #endif
 

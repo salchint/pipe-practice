@@ -20,6 +20,16 @@ int* playerPositions;
 int* playerRankings;
 
 /*
+ *This player's ID.
+ */
+int ownId;
+
+/*
+ *This player's money balance.
+ */
+int money;
+
+/*
  *Initialize the global field representing all players' positions.
  */
 void init_player_positions(int playersCount) {
@@ -37,9 +47,32 @@ void getPath(int playersCount) {
     player_read_path(stdin, playersCount, &path);
 }
 
-void process_command(const char* command) {
+/*
+ *Calculate the next move and send it.
+ */
+void make_move(int playersCount) {
+    int doSiteAhead = -1;
+
+    if (0 < money) {
+        doSiteAhead = player_find_x_site_ahead(DO, playerPositions, ownId,
+                &path);
+        if (-1 < doSiteAhead) {
+            player_forward_to(stdout, doSiteAhead, playerPositions, ownId);
+        }
+    }
+
+    /*
+     *player_print_path(stderr, &path, playersCount, path.siteCount,
+     *        playerPositions, playerRankings);
+     */
+}
+
+/*
+ *Upon receiving some message, execute it as long as it is valid.
+ */
+void process_command(const char* command, int playersCount) {
     if (0 == strncmp("YT", command, 2u)) {
-        printf("It's my turn\n");
+        make_move(playersCount);
     }
 }
 
@@ -59,7 +92,7 @@ void run_game(int playersCount) {
             player_free_path(&path);
             errorReturn(stderr, E_COMMS_ERROR);
         }
-        process_command(command);
+        process_command(command, playersCount);
     }
 }
 
@@ -94,6 +127,8 @@ int main(int argc, char* argv[]) {
     if (playersCount <= playerID) {
         errorReturn(stderr, E_INVALID_PLAYER_ID);
     }
+    ownId = playerID;
+    money = 7;
 
     init_player_positions(playersCount);
 
