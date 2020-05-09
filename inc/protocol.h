@@ -103,7 +103,6 @@ void free_path(Path* path) {
     if (path) {
         if (path->siteCount) {
             if (path->sites) {
-                printf("    free_sites %p ", (void*)path->sites);
                 free((void*)path->sites);
                 path->sites = NULL;
                 path->siteCount = 0u;
@@ -111,13 +110,11 @@ void free_path(Path* path) {
         }
         if (path->bufferLength) {
             if (path->buffer) {
-                printf("free_buffer %p ", (void*)path->buffer);
                 free((void*)path->buffer);
                 path->buffer = NULL;
                 path->bufferLength = 0u;
             }
         }
-        printf(" - done\n");
     }
 }
 
@@ -145,6 +142,25 @@ enum SiteTypes convert_site_type(const char* siteName) {
         return BARRIER;
     }
     return UNKNOWN_SITE_TYPE;
+}
+
+const char* convert_site_name(enum SiteTypes type) {
+    switch (type) {
+        case MO:
+            return "Mo";
+        case V1:
+            return "V1";
+        case V2:
+            return "V2";
+        case DO:
+            return "Do";
+        case RI:
+            return "Ri";
+        case BARRIER:
+            return "::";
+        default:
+            return "__";
+    }
 }
 
 /*
@@ -184,11 +200,15 @@ int deserialize_path(FILE* stream, Path* path, int playersCount) {
             path->sites[siteIdx].type = BARRIER;
             pos += 3;
             siteIdx += 1;
-            printf("    site name=:: cap=-\n");
+            /*
+             *printf("    site name=:: cap=-\n");
+             */
         } else {
             readChars = sscanf(pos, "%c%c%d;",
                     &siteName[0], &siteName[1], &siteCapacity);
-            printf("    site name=%s cap=%d; readCh=%d\n", siteName, siteCapacity, readChars);
+            /*
+             *printf("    site name=%s cap=%d; readCh=%d\n", siteName, siteCapacity, readChars);
+             */
             if (EOF == readChars || readChars < 3) {
                 free_path(path);
                 return E_INVALID_PATH;
@@ -221,6 +241,52 @@ int verify_path(Path* path) {
     }
 
     return E_OK;
+}
+
+/*
+ *Determine the rankings of players if they are on the same site.
+ */
+void calculate_rankings(const int* positions, int* rankings,
+        int playersCount) {
+    int playerIdx = 0;
+    int higherIdx = 0;
+
+    memset(rankings, 0, playersCount * sizeof(int));
+
+    for (playerIdx = playersCount - 1; 0 <= playerIdx; playerIdx--) {
+        for (higherIdx = playerIdx + 1; higherIdx < playersCount; higherIdx++) {
+            /*Increment this player's ranking if there is a "higher" player*/
+            /*on the same position.*/
+            if (positions[higherIdx] == positions[playerIdx]) {
+                rankings[playerIdx]++;
+            }
+        }
+    }
+}
+
+/*
+ *Allocate the map as a contignuous chunk.
+ */
+int** alloc_map(int rows, int columns) {
+    int bodySize = 0;
+    int headerSize = 0;
+    int** row = NULL;
+    int* buf = NULL;
+    int i = 0;
+
+    headerSize = rows * sizeof(int*);
+    bodySize = rows * columns * sizeof(int);
+
+    row = (int**)malloc(headerSize + bodySize);
+    memset(row, -1, headerSize + bodySize);
+
+    buf  = (int*)(row + rows);
+    row[0] = buf;
+    for(i = 1; i < rows; i++) {
+        row[i] = row[i-1] + columns;
+    }
+
+    return row;
 }
 
 /*
@@ -271,7 +337,57 @@ void player_free_path(Path* path) {
     free_path(path);
 }
 
-void player_print_path()
+/*
+ *Print the path including all players' positions.
+ */
+void player_print_path(FILE* output, Path* path, int playersCount,
+        int siteCount, const int* positions, int* rankings) {
+    int i, row, column = 0;
+    int lineLength = 0;
+    int** map = NULL;
+    int playerNo = 0;
+    int count = 0;
+
+    /*Get the rankings of all the players on their positions/sites.*/
+    calculate_rankings(positions, rankings, playersCount);
+
+    /*Print the first line representing the path.*/
+    for (i = 0; i < path->siteCount; i++) {
+        fprintf(output, "%s ", convert_site_name(path->sites[i].type));
+        lineLength += 3;
+    }
+    fputs("\n", output);
+
+    /*Generate a map representing all players' positions.*/
+    map = alloc_map(playersCount, siteCount);
+    for (i = 0; i < playersCount; i++) {
+        map[rankings[i]][positions[i]] = i;
+    }
+
+    /*Print the players' positions line by line.*/
+    for (row = 0; row < playersCount && count < playersCount; row++) {
+        for (column = 0; column < siteCount; column++) {
+            playerNo = map[row][column];
+            if (-1 == playerNo) {
+                fputs("   ", output);
+            } else {
+                fprintf(output, "%-3d", playerNo);
+                count += 1;
+            }
+        }
+        fputs("\n", output);
+    }
+
+    free(map);
+}
+
+/*
+ *Determine the rankings of players if they are on the same site.
+ */
+void player_calculate_rankings(const int* positions, int* rankings,
+        int playersCount) {
+    calculate_rankings(positions, rankings, playersCount);
+}
 
 #endif
 
