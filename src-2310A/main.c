@@ -37,14 +37,30 @@ void getPath(int playersCount) {
     player_read_path(stdin, playersCount, &path);
 }
 
+void process_command(const char* command) {
+    if (0 == strncmp("YT", command, 2u)) {
+        printf("It's my turn\n");
+    }
+}
+
 /*
  *Game play loop.
  */
 void run_game(int playersCount) {
+    char command[100];
+
     getPath(playersCount);
 
     player_print_path(stderr, &path, playersCount, path.siteCount,
             playerPositions, playerRankings);
+
+    for (;;) {
+        if (!fgets(command, sizeof(command), stdin)) {
+            player_free_path(&path);
+            errorReturn(stderr, E_COMMS_ERROR);
+        }
+        process_command(command);
+    }
 }
 
 int main(int argc, char* argv[]) {

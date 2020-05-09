@@ -8,9 +8,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
- /*
-  *Error codes used upon exiting the program.
-  */
+/*
+ *Error codes used upon exiting the program.
+ */
 enum PlayerErrorCodes {
     E_OK = 0,
     E_INVALID_ARGS_COUNT = 1,
