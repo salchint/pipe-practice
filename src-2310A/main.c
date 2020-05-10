@@ -68,11 +68,16 @@ void make_move(int playersCount) {
         return;
     }
 
+    /*Rule #0.1: Always stop at a barrier*/
+    barrierAhead = (unsigned int)player_find_x_site_ahead(BARRIER, ownPosition,
+            &path);
+
     /*Rule #1: Go to next Do if you have money*/
     if (0 < money) {
         doSiteAhead = player_find_x_site_ahead(DO, ownPosition, &path);
         if (-1 != doSiteAhead) {
-            player_forward_to(stdout, doSiteAhead, playerPositions, ownId);
+            player_forward_to(stdout, doSiteAhead, barrierAhead,
+                    playerPositions, ownId);
             return;
         }
     }
@@ -81,7 +86,8 @@ void make_move(int playersCount) {
     if (MO == path.sites[ownPosition + 1].type) {
         money += 3;
         siteToGo = ownPosition + 1;
-        player_forward_to(stdout, siteToGo, playerPositions, ownId);
+        player_forward_to(stdout, siteToGo, barrierAhead, playerPositions,
+                ownId);
         return;
     }
 
@@ -90,12 +96,11 @@ void make_move(int playersCount) {
             &path);
     v2SiteAhead =  (unsigned int)player_find_x_site_ahead(V2, ownPosition,
             &path);
-    barrierAhead = (unsigned int)player_find_x_site_ahead(BARRIER, ownPosition,
-            &path);
     siteToGo = MIN(v1SiteAhead, v2SiteAhead);
     siteToGo = MIN(siteToGo, barrierAhead);
     if (-1 != siteToGo) {
-        player_forward_to(stdout, siteToGo, playerPositions, ownId);
+        player_forward_to(stdout, siteToGo, barrierAhead, playerPositions,
+                ownId);
     }
 
 

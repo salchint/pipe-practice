@@ -411,7 +411,9 @@ int player_find_x_site_ahead(enum SiteTypes type, int ownPosition,
 /*
  *Let this player move forward to the site specified.
  */
-void player_forward_to(FILE* output, int siteIdx, int* positions, int ownId) {
+void player_forward_to(FILE* output, int siteIdx, int barrierIdx,
+        int* positions, int ownId) {
+    siteIdx = MIN(siteIdx, barrierIdx);
     positions[ownId] = siteIdx;
     fprintf(output, "DO%d\n", siteIdx);
 }
