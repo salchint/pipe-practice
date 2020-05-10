@@ -6,24 +6,24 @@ add_cppcheck_sources(test UNUSED_FUNCTIONS STYLE POSSIBLE_ERRORS FORCE)
 file(
     GLOB
     headers
-    *.hpp
+    *.h
 )
 
 file(
     GLOB
     sources
-    *.cpp
+    *.c
 )
 
-add_library(
-    pipe-practice
-    SHARED
+add_executable(
+    2310dealer
     ${sources}
     ${headers}
 )
+target_link_libraries(2310dealer m)
 
 install(
-    TARGETS pipe-practice
+  TARGETS 2310dealer
     DESTINATION lib
 )
 

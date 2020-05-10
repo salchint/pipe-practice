@@ -765,7 +765,7 @@ WARN_LOGFILE           =
 # spaces. See also FILE_PATTERNS and EXTENSION_MAPPING
 # Note: If this tag is empty the current directory is searched.
 
-INPUT                  = ${CMAKE_SOURCE_DIR}/src
+INPUT                  =${CMAKE_SOURCE_DIR}/inc ${CMAKE_SOURCE_DIR}/src-2310A ${CMAKE_SOURCE_DIR}/src-2310B ${CMAKE_SOURCE_DIR}/src-2310dealer
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses

@@ -17,6 +17,8 @@ project(pipe-practice)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++14")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -pedantic -std=gnu99")
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+
 # Packaging
 #ADD_CUSTOM_TARGET(packaging
 #    COMMAND rm -rf build
@@ -82,6 +84,8 @@ endif()
 # Subdirectories
 #add_subdirectory(src)
 add_subdirectory(src-2310A)
+add_subdirectory(src-2310B)
+add_subdirectory(src-2310dealer)
 add_subdirectory(tests)
 add_subdirectory(examples)
 add_subdirectory(doc)
