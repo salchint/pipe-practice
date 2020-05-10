@@ -43,8 +43,13 @@ void init_player_positions(int playersCount) {
  *Request the path information from the dealer.
  */
 void getPath(int playersCount) {
+    int success = E_OK;
+
     player_request_path(stdout);
-    player_read_path(stdin, playersCount, &path);
+    success = player_read_path(stdin, playersCount, &path);
+    if(E_OK != success) {
+        errorReturn(stderr, success);
+    }
 }
 
 /*
@@ -52,19 +57,53 @@ void getPath(int playersCount) {
  */
 void make_move(int playersCount) {
     int doSiteAhead = -1;
+    unsigned int v1SiteAhead = -1u;
+    unsigned int v2SiteAhead = -1u;
+    unsigned int barrierAhead = -1u;
+    unsigned int siteToGo = -1u;
+    int ownPosition = playerPositions[ownId];
 
+    /*Rule #0: Don't move bejond the end of the path.*/
+    if (path.siteCount <= ownPosition) {
+        return;
+    }
+
+    /*Rule #1: Go to next Do if you have money*/
     if (0 < money) {
-        doSiteAhead = player_find_x_site_ahead(DO, playerPositions, ownId,
-                &path);
-        if (-1 < doSiteAhead) {
+        doSiteAhead = player_find_x_site_ahead(DO, ownPosition, &path);
+        if (-1 != doSiteAhead) {
             player_forward_to(stdout, doSiteAhead, playerPositions, ownId);
+            return;
         }
     }
 
-    /*
-     *player_print_path(stderr, &path, playersCount, path.siteCount,
-     *        playerPositions, playerRankings);
-     */
+    /*Rule #2: Go to the next site if it is Mo.*/
+    if (MO == path.sites[ownPosition + 1].type) {
+        money += 3;
+        siteToGo = ownPosition + 1;
+        player_forward_to(stdout, siteToGo, playerPositions, ownId);
+        return;
+    }
+
+    /*Rule #3: Stop at the closest V1, V2 or barrier site.*/
+    v1SiteAhead =  (unsigned int)player_find_x_site_ahead(V1, ownPosition,
+            &path);
+    v2SiteAhead =  (unsigned int)player_find_x_site_ahead(V2, ownPosition,
+            &path);
+    barrierAhead = (unsigned int)player_find_x_site_ahead(BARRIER, ownPosition,
+            &path);
+    siteToGo = MIN(v1SiteAhead, v2SiteAhead);
+    siteToGo = MIN(siteToGo, barrierAhead);
+    if (-1 != siteToGo) {
+        player_forward_to(stdout, siteToGo, playerPositions, ownId);
+    }
+
+
+     /*
+      *player_print_path(stderr, &path, playersCount, path.siteCount,
+      *        playerPositions, playerRankings);
+      */
+    return;
 }
 
 /*
@@ -100,6 +139,7 @@ int main(int argc, char* argv[]) {
     int playersCount = 0;
     int playerID = 0;
     int i = 0;
+
 
     /*Check for valid number of parameters*/
     if (3 != argc) {

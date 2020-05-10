@@ -11,6 +11,11 @@
 
 #include "errorReturn.h"
 
+#ifndef MAX
+#define MAX(a,b) (((a) > (b)) ? (a) : (b))
+#define MIN(a,b) (((a) < (b)) ? (a) : (b))
+#endif
+
 /*
  *Site types.
  *MO .. Gain 3 Money.
@@ -392,10 +397,10 @@ void player_calculate_rankings(const int* positions, int* rankings,
 /*
  *Find the next site matching the given site type.
  */
-int player_find_x_site_ahead(enum SiteTypes type, const int* positions,
-        int ownId, const Path* path) {
+int player_find_x_site_ahead(enum SiteTypes type, int ownPosition,
+        const Path* path) {
     int i = 0;
-    for (i = positions[ownId] + 1; i < path->siteCount; i++) {
+    for (i = ownPosition + 1; i < path->siteCount; i++) {
         if (type == path->sites[i].type) {
                 return i;
         }
