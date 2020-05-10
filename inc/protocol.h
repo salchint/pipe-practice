@@ -385,7 +385,6 @@ void player_print_path(FILE* output, Path* path, int playersCount,
 
     free(map);
 }
-
 /*
  *Determine the rankings of players if they are on the same site.
  */
@@ -416,6 +415,22 @@ void player_forward_to(FILE* output, int siteIdx, int barrierIdx,
     siteIdx = MIN(siteIdx, barrierIdx);
     positions[ownId] = siteIdx;
     fprintf(output, "DO%d\n", siteIdx);
+}
+
+/*
+ *Calculate the number of players positioned on the given site.
+ */
+unsigned int player_get_site_usage(const int* positions, int playersCount,
+        int siteIdx) {
+    int i = 0;
+    int usage = 0;
+
+    for (i = 0; i < playersCount; i++) {
+        if (siteIdx == positions[i]) {
+            usage += 1;
+        }
+    }
+    return usage;
 }
 
 

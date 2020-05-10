@@ -53,18 +53,59 @@ void getPath(int playersCount) {
 }
 
 /*
- *Calculate the next move and send it.
+ *Determine the target of the next move according to the player's strategy.
+ *We start at the given current position not taking the site's capacity into
+ *account.
  */
-void make_move(int playersCount) {
+unsigned int calculate_move_to(int playersCount, unsigned int ownPosition) {
     int doSiteAhead = -1;
     unsigned int v1SiteAhead = -1u;
     unsigned int v2SiteAhead = -1u;
     unsigned int barrierAhead = -1u;
     unsigned int siteToGo = -1u;
-    int ownPosition = playerPositions[ownId];
 
-    /*Rule #0: Don't move bejond the end of the path.*/
-    if (path.siteCount <= ownPosition) {
+    /*Rule #1: Go to next Do if you have money*/
+    if (0 < money) {
+        doSiteAhead = player_find_x_site_ahead(DO, ownPosition, &path);
+        if (-1 != doSiteAhead) {
+            siteToGo = doSiteAhead;
+        }
+    }
+
+    /*Rule #2: Go to the next site if it is Mo.*/
+    if (-1u == siteToGo) {
+        if (MO == path.sites[ownPosition + 1].type) {
+            money += 3;
+            siteToGo = ownPosition + 1;
+        }
+    }
+
+    /*Rule #3: Stop at the closest V1, V2 or barrier site.*/
+    if (-1u == siteToGo) {
+        v1SiteAhead =  (unsigned int)player_find_x_site_ahead(V1, ownPosition,
+                &path);
+        v2SiteAhead =  (unsigned int)player_find_x_site_ahead(V2, ownPosition,
+                &path);
+        barrierAhead = (unsigned int)player_find_x_site_ahead(BARRIER,
+                ownPosition, &path);
+        siteToGo = MIN(v1SiteAhead, v2SiteAhead);
+        siteToGo = MIN(siteToGo, barrierAhead);
+    }
+
+    return siteToGo;
+}
+
+/*
+ *Calculate the next move and send it.
+ */
+void make_move(int playersCount) {
+    unsigned int barrierAhead = -1u;
+    unsigned int siteToGo = -1u;
+    int ownPosition = playerPositions[ownId];
+    int siteUsage = 0;
+
+    /*Rule #0: Don't move beyond the end of the path.*/
+    if (path.siteCount <= ownPosition + 1) {
         return;
     }
 
@@ -72,42 +113,24 @@ void make_move(int playersCount) {
     barrierAhead = (unsigned int)player_find_x_site_ahead(BARRIER, ownPosition,
             &path);
 
-    /*Rule #1: Go to next Do if you have money*/
-    if (0 < money) {
-        doSiteAhead = player_find_x_site_ahead(DO, ownPosition, &path);
-        if (-1 != doSiteAhead) {
-            player_forward_to(stdout, doSiteAhead, barrierAhead,
-                    playerPositions, ownId);
-            return;
+    do {
+        siteToGo = calculate_move_to(playersCount, ownPosition);
+        siteUsage = player_get_site_usage(playerPositions, playersCount,
+                siteToGo);
+        if (-1u == siteToGo) {
+            /*Make sure to not move beyond the path*/
+            break;
         }
-    }
+    } while (path.sites[siteToGo].capacity <= siteUsage);
 
-    /*Rule #2: Go to the next site if it is Mo.*/
-    if (MO == path.sites[ownPosition + 1].type) {
-        money += 3;
-        siteToGo = ownPosition + 1;
-        player_forward_to(stdout, siteToGo, barrierAhead, playerPositions,
-                ownId);
-        return;
-    }
-
-    /*Rule #3: Stop at the closest V1, V2 or barrier site.*/
-    v1SiteAhead =  (unsigned int)player_find_x_site_ahead(V1, ownPosition,
-            &path);
-    v2SiteAhead =  (unsigned int)player_find_x_site_ahead(V2, ownPosition,
-            &path);
-    siteToGo = MIN(v1SiteAhead, v2SiteAhead);
-    siteToGo = MIN(siteToGo, barrierAhead);
-    if (-1 != siteToGo) {
+    if (-1u != siteToGo) {
         player_forward_to(stdout, siteToGo, barrierAhead, playerPositions,
                 ownId);
     }
-
-
-     /*
-      *player_print_path(stderr, &path, playersCount, path.siteCount,
-      *        playerPositions, playerRankings);
-      */
+    /*
+     *player_print_path(stderr, &path, playersCount, path.siteCount,
+     *        playerPositions, playerRankings);
+     */
     return;
 }
 

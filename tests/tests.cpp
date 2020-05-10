@@ -204,3 +204,21 @@ TEST_F(PlayerASuite, test_print_path) {
     player_print_path(stdout, path, 4, 7, positions, rankings);
 }
 
+TEST_F(PlayerASuite, test_site_usage0) {
+    int positions[] = { 1, 2, 2, 0 };
+    int usage = player_get_site_usage(positions, 4, 2);
+    EXPECT_EQ(2, usage);
+}
+
+TEST_F(PlayerASuite, test_site_usage1) {
+    int positions[] = { 1, 2, 2, 0 };
+    int usage = player_get_site_usage(positions, 4, 0);
+    EXPECT_EQ(1, usage);
+}
+
+TEST_F(PlayerASuite, test_site_usage2) {
+    int positions[] = { 1, 2, 2, 0 };
+    int usage = player_get_site_usage(positions, 4, 3);
+    EXPECT_EQ(0, usage);
+}
+
