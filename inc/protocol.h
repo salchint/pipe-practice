@@ -364,15 +364,19 @@ void player_free_path(Path* path) {
  *Print the path including all players' positions.
  */
 void player_print_path(FILE* output, Path* path, int playersCount,
-        int siteCount, const int* positions, int* rankings) {
+        int siteCount, const int* positions, int* rankings,
+        int initialSorting) {
     int i, row, column = 0;
     int lineLength = 0;
     int** map = NULL;
     int playerNo = 0;
     int count = 0;
 
-    /*Get the rankings of all the players on their positions/sites.*/
-    calculate_rankings(positions, rankings, playersCount);
+    if (initialSorting) {
+        /*Get the initial rankings of all the players on their
+         * positions/sites.*/
+        calculate_rankings(positions, rankings, playersCount);
+    }
 
     /*Print the first line representing the path.*/
     for (i = 0; i < path->siteCount; i++) {

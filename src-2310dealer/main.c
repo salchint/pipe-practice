@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <limits.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <fcntl.h>
@@ -95,12 +96,86 @@ int open_stream(int playerId) {
 }
 
 /*
+ *Determine the player, who is next.
+ */
+int calculate_next_player(int playersCount, const int* positions,
+        const int* rankings) {
+    int i = 0;
+    int minSite = INT_MAX ;
+    int maxRank = 0;
+
+    /*Find the earliest used site*/
+    for (i = 0; i < playersCount; i++) {
+       minSite = MIN(minSite, positions[i]);
+    }
+
+    /*Find the highest ranking on that site*/
+    for (i = 0; i < playersCount; i++) {
+       if (minSite == positions[i]) {
+          maxRank = MAX(maxRank, rankings[i]);
+       }
+    }
+
+    /*Find the player on the evaluated site and ranking*/
+    for (i = 0; i < playersCount; i++) {
+       if (minSite == positions[i]
+           && maxRank == rankings[i]) {
+           return i;
+       }
+    }
+
+    return 0;
+}
+
+/*
+ *Adjust the gobal positions and ranking board.
+ */
+void move_player(int id, int targetSite, int playersCount,
+        int* positions, int* rankings) {
+    int i = 0;
+    int ranking = 0;
+
+    for (i = 0; i < playersCount; i++) {
+        if (targetSite == positions[i]) {
+            ranking += 1;
+        }
+    }
+
+    positions[id] = targetSite;
+
+    rankings[id] = ranking;
+}
+
+/*
+ *Listen for the next move from the given player.
+ */
+void receive_next_move(FILE* readStream, int id, int playersCount,
+        int* positions, int* rankings) {
+    char buffer[100];
+    int targetSite = 0;
+    int readChars = 0;
+
+    if (!fgets(buffer, sizeof(buffer), readStream)) {
+        errorReturnDealer(stdout, E_DEALER_COMMS_ERROR, 1);
+    }
+
+    readChars = sscanf(buffer, "DO%d", &targetSite);
+    if (1 > readChars || EOF == readChars) {
+        errorReturnDealer(stdout, E_DEALER_COMMS_ERROR, 1);
+    }
+
+    move_player(id, targetSite, playersCount, positions, rankings);
+    player_print_path(stdout, &path, playersCount, path.siteCount,
+            positions, rankings, 0);
+}
+
+/*
  *Execute the dealer's business logic.
  */
 void run_dealer(int playersCount) {
     int i = 0;
     int run = 1;
-    /*char buffer[100];*/
+    int nextPlayer = 0;
 
     for (i = 0; i < playersCount; i++) {
         open_stream(i);
@@ -111,7 +186,7 @@ void run_dealer(int playersCount) {
 
     /*First, print the path*/
     player_print_path(stdout, &path, playersCount, path.siteCount,
-            playerPositions, playerRankings);
+            playerPositions, playerRankings, 1);
     fflush(stdout);
 
     /*Next, all players need to ask for the path*/
@@ -125,7 +200,13 @@ void run_dealer(int playersCount) {
     }
 
     while (run) {
-        /*Next, let the player make his move, which is furthers back*/
+        /*Next, let the player make his move, which is furtherst back*/
+        nextPlayer = calculate_next_player(playersCount, playerPositions,
+                playerRankings);
+        fprintf(streamToPlayer[nextPlayer][WRITE_END], "YT\n");
+        fflush(streamToPlayer[i][WRITE_END]);
+        receive_next_move(streamToDealer[nextPlayer][READ_END], nextPlayer,
+                playersCount, playerPositions, playerRankings);
     }
 }
 

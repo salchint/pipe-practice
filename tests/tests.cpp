@@ -201,7 +201,7 @@ TEST_F(PlayerASuite, test_print_path) {
     fclose(fileStream[1]);
     fileStream[1] = nullptr;
     EXPECT_EQ(E_OK, player_read_path(fileStream[0], 2, path));
-    player_print_path(stdout, path, 4, 7, positions, rankings);
+    player_print_path(stdout, path, 4, 7, positions, rankings, 1);
 }
 
 TEST_F(PlayerASuite, test_site_usage0) {
