@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <sys/types.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include "../inc/errorReturn.h"
 #include "../inc/protocol.h"
@@ -20,13 +21,25 @@
 #define READ_END 0
 
 /*
- *File stream to read deck file.
+ *Memory holding the card deck.
  */
-FILE* deckStream = NULL;
+char* deckBuffer = NULL;
 /*
- *File stream to read path file.
+ *Number of cards in the deck.
  */
-FILE* pathStream = NULL;
+int deckSize = 0;
+/*
+ *Path object deserialized from the path file.
+ */
+Path path;
+/*
+ *All players' positions.
+ */
+int* playerPositions;
+/*
+ *The ranking is relevant if there are multiple players on the same site.
+ */
+int* playerRankings;
 
 /*
  *PIDs of all player processes.
@@ -48,6 +61,16 @@ FILE* streamToPlayer[MAX_PLAYERS][2];
  *Streams sourcing from all players.
  */
 FILE* streamToDealer[MAX_PLAYERS][2];
+
+/*
+ *Initialize the global field representing all players' positions.
+ */
+void init_player_positions(int playersCount) {
+    playerPositions = malloc(playersCount * sizeof(int));
+    playerRankings = malloc(playersCount * sizeof(int));
+    memset(playerPositions, 0, playersCount * sizeof(int));
+    memset(playerRankings, 0, playersCount * sizeof(int));
+}
 
 /*
  *Open a set of streams representing bidirectional communication to a player.
@@ -72,39 +95,12 @@ int open_stream(int playerId) {
 }
 
 /*
- *Launch the player processes.
- */
-void run_player(int id, const char** playerNames) {
-    char buffer[100];
-
-    *buffer = '\0';
-
-    open_stream(id);
-
-    fclose(streamToPlayer[id][WRITE_END]);
-    fclose(streamToDealer[id][READ_END]);
-
-    printf("Player%d> Waiting....\n", id);
-    fgets(buffer, sizeof(buffer), streamToPlayer[id][READ_END]);
-    printf("Player%d received %s\n", id, buffer);
-
-    fprintf(streamToDealer[id][WRITE_END], "DO%d\n", id);
-    fflush(streamToDealer[id][WRITE_END]);
-
-
-
-    fclose(streamToPlayer[id][READ_END]);
-    fclose(streamToDealer[id][WRITE_END]);
-
-}
-
-/*
  *Execute the dealer's business logic.
  */
 void run_dealer(int playersCount) {
     int i = 0;
-    int run = 3;
-    char buffer[100];
+    int run = 1;
+    /*char buffer[100];*/
 
     for (i = 0; i < playersCount; i++) {
         open_stream(i);
@@ -113,19 +109,60 @@ void run_dealer(int playersCount) {
         fclose(streamToDealer[i][WRITE_END]);
     }
 
-    while (run) {
-        run -= 1;
-        printf("Dealer: sending request\n");
+    /*First, print the path*/
+    player_print_path(stdout, &path, playersCount, path.siteCount,
+            playerPositions, playerRankings);
+    fflush(stdout);
 
-        /*Request*/
-        fprintf(streamToPlayer[run][WRITE_END], "YT\n");
-        fflush(streamToPlayer[run][WRITE_END]);
-
-        /*Response*/
-        fgets(buffer, sizeof(buffer), streamToDealer[run][READ_END]);
-
-        printf("Dealer> Received %s\n", buffer);
+    /*Next, all players need to ask for the path*/
+    for (i = 0; i < playersCount; i++) {
+        if ('^' == fgetc(streamToDealer[i][READ_END])) {
+            /*fprintf(stdout, "%zu;%s", path.siteCount, path.buffer);*/
+            fprintf(streamToPlayer[i][WRITE_END], "%zu;%s", path.siteCount,
+                    path.buffer);
+            fflush(streamToPlayer[i][WRITE_END]);
+        }
     }
+
+    while (run) {
+        /*Next, let the player make his move, which is furthers back*/
+    }
+}
+
+/*
+ *Launch the player processes.
+ */
+void run_player(int id, int playersCount, const char** playerNames) {
+    char buffer[100];
+    char bufferCount[10];
+    char bufferId[10];
+    /*int devNull = 0;*/
+
+    *buffer = '\0';
+    *bufferCount = '\0';
+    *bufferId = '\0';
+
+    open_stream(id);
+
+    /*Redirect stdin, stdout of the players*/
+    dup2(pipeToPlayerNo[id][READ_END], READ_END);
+    dup2(pipeToDealerNo[id][WRITE_END], WRITE_END);
+
+    /*[>Redirect stderr to /dev/null<]*/
+    /*devNull = open("/dev/null", O_WRONLY);*/
+    /*dup2(STDERR_FILENO, devNull);*/
+
+    fclose(streamToPlayer[id][READ_END]);
+    fclose(streamToPlayer[id][WRITE_END]);
+    fclose(streamToDealer[id][READ_END]);
+    fclose(streamToDealer[id][WRITE_END]);
+
+    sprintf(bufferCount, "%d", playersCount);
+    sprintf(bufferId, "%d", id);
+    execlp(playerNames[id], playerNames[id], bufferCount, bufferId, NULL);
+
+    /*Should not happen!*/
+    errorReturnDealer(stderr, E_DEALER_INVALID_START_PLAYER, 0);
 }
 
 /*
@@ -150,9 +187,7 @@ void start_players(int playersCount, const char** playerNames) {
 
         if (0 == pid) {
         /*Player context*/
-            /*dup2(pipeDescs[i + WRITE_END], STDOUT_FILENO);*/
-
-            run_player(i, playerNames);
+            run_player(i, playersCount, playerNames);
             break;
         } else {
         /*Dealer context*/
@@ -161,7 +196,20 @@ void start_players(int playersCount, const char** playerNames) {
     }
 
     if (0 < pid) {
+        /*Dealer context*/
         run_dealer(playersCount);
+    }
+}
+
+/*
+ *Request the path information from the dealer.
+ */
+void getPath(int playersCount, FILE* stream) {
+    int success = E_OK;
+
+    success = player_read_path(stream, playersCount, &path);
+    if(E_OK != success) {
+        errorReturnDealer(stderr, E_DEALER_INVALID_PATH, 1);
     }
 }
 
@@ -171,6 +219,8 @@ int main(int argc, char* argv[]) {
     char** playerNames = NULL;
     int playersCount = 0;
     int i = 0;
+    FILE* deckStream = NULL;
+    FILE* pathStream = NULL;
 
 
     /*Check for valid number of parameters*/
@@ -198,11 +248,16 @@ int main(int argc, char* argv[]) {
         playerNames[i - 3] = argv[i];
     }
 
+    init_player_positions(playersCount);
+    getPath(playersCount, pathStream);
+    fclose(pathStream);
+
     start_players(playersCount, (const char**)playerNames);
 
-
-
+    free(playerPositions);
+    free(playerRankings);
     free(playerNames);
+
     return EXIT_SUCCESS;
 }
 

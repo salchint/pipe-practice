@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
+#include <errno.h>
 
 #include "errorReturn.h"
 
@@ -183,6 +184,10 @@ int deserialize_path(FILE* stream, Path* path, int playersCount) {
     siteName[2] = '\0';
 
     if (!fgets(path->buffer, path->bufferLength, stream)) {
+        /*
+         *printf("Failed to read file: %d\n", errno);
+         *printf("Path: %s\n", path->buffer);
+         */
         free_path(path);
         return E_INVALID_PATH;
     }
@@ -190,6 +195,9 @@ int deserialize_path(FILE* stream, Path* path, int playersCount) {
     /*First there needs to be a barrier */
     pos = path->buffer;
     if (!is_barrier(pos)) {
+        /*
+         *printf("Failed to read barrier at beginning\n");
+         */
         free_path(path);
         return E_INVALID_PATH;
     }
@@ -205,16 +213,13 @@ int deserialize_path(FILE* stream, Path* path, int playersCount) {
             path->sites[siteIdx].type = BARRIER;
             pos += 3;
             siteIdx += 1;
-            /*
-             *printf("    site name=:: cap=-\n");
-             */
         } else {
             readChars = sscanf(pos, "%c%c%d;",
                     &siteName[0], &siteName[1], &siteCapacity);
-            /*
-             *printf("    site name=%s cap=%d; readCh=%d\n", siteName, siteCapacity, readChars);
-             */
             if (EOF == readChars || readChars < 3) {
+                /*
+                 *printf("Failed to read site %d\n", i);
+                 */
                 free_path(path);
                 return E_INVALID_PATH;
             }
@@ -226,6 +231,9 @@ int deserialize_path(FILE* stream, Path* path, int playersCount) {
 
         /*Verify the buffer boundary*/
         if (path->buffer + path->bufferLength < pos) {
+            /*
+             *printf("Failed to verify buffer boundary\n");
+             */
             free_path(path);
             return E_INVALID_PATH;
         }
@@ -301,6 +309,7 @@ int** alloc_map(int rows, int columns) {
  */
 void player_request_path(FILE* stream) {
     fprintf(stream, "^");
+    fflush(stream);
 }
 
 /*
@@ -321,16 +330,25 @@ int player_read_path(FILE* stream, int playersCount, Path* path) {
     if (E_OK != success) {
         return success;
     }
+    /*
+     *printf("Path built\n");
+     */
 
     success = deserialize_path(stream, path, playersCount);
     if (E_OK != success) {
         return success;
     }
+    /*
+     *printf("Path deserialized\n");
+     */
 
     success = verify_path(path);
     if (E_OK != success) {
         return success;
     }
+    /*
+     *printf("Path verified\n");
+     */
 
     return success;
 }
@@ -415,6 +433,7 @@ void player_forward_to(FILE* output, int siteIdx, int barrierIdx,
     siteIdx = MIN(siteIdx, barrierIdx);
     positions[ownId] = siteIdx;
     fprintf(output, "DO%d\n", siteIdx);
+    fflush(output);
 }
 
 /*

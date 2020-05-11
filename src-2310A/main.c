@@ -150,8 +150,8 @@ void run_game(int playersCount) {
 
     getPath(playersCount);
 
-    player_print_path(stderr, &path, playersCount, path.siteCount,
-            playerPositions, playerRankings);
+    /*player_print_path(stderr, &path, playersCount, path.siteCount,*/
+            /*playerPositions, playerRankings);*/
 
     for (;;) {
         if (!fgets(command, sizeof(command), stdin)) {
@@ -166,7 +166,6 @@ int main(int argc, char* argv[]) {
     int playersCount = 0;
     int playerID = 0;
     int i = 0;
-
 
     /*Check for valid number of parameters*/
     if (3 != argc) {
