@@ -137,7 +137,9 @@ void make_move(int playersCount) {
  *Upon receiving some message, execute it as long as it is valid.
  */
 void process_command(const char* command, int playersCount) {
-    if (0 == strncmp("YT", command, 2u)) {
+    if (0 == strncmp("EARLY", command, 5u)) {
+        errorReturn(stderr, E_EARLY_GAME_OVER);
+    } else if (0 == strncmp("YT", command, 2u)) {
         make_move(playersCount);
     }
 }

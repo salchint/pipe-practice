@@ -2,7 +2,9 @@
 #include <stdio.h>
 #include <limits.h>
 #include <errno.h>
+#include <signal.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include "../inc/errorReturn.h"
@@ -41,6 +43,10 @@ int* playerPositions;
  *The ranking is relevant if there are multiple players on the same site.
  */
 int* playerRankings;
+/*
+ *The actual number of players in the game.
+ */
+int playersCount = 0;
 
 /*
  *PIDs of all player processes.
@@ -66,7 +72,7 @@ FILE* streamToDealer[MAX_PLAYERS][2];
 /*
  *Initialize the global field representing all players' positions.
  */
-void init_player_positions(int playersCount) {
+void init_player_positions() {
     playerPositions = malloc(playersCount * sizeof(int));
     playerRankings = malloc(playersCount * sizeof(int));
     memset(playerPositions, 0, playersCount * sizeof(int));
@@ -98,8 +104,7 @@ int open_stream(int playerId) {
 /*
  *Determine the player, who is next.
  */
-int calculate_next_player(int playersCount, const int* positions,
-        const int* rankings) {
+int calculate_next_player(const int* positions, const int* rankings) {
     int i = 0;
     int minSite = INT_MAX ;
     int maxRank = 0;
@@ -130,8 +135,7 @@ int calculate_next_player(int playersCount, const int* positions,
 /*
  *Adjust the gobal positions and ranking board.
  */
-void move_player(int id, int targetSite, int playersCount,
-        int* positions, int* rankings) {
+void move_player(int id, int targetSite, int* positions, int* rankings) {
     int i = 0;
     int ranking = 0;
 
@@ -149,8 +153,7 @@ void move_player(int id, int targetSite, int playersCount,
 /*
  *Listen for the next move from the given player.
  */
-void receive_next_move(FILE* readStream, int id, int playersCount,
-        int* positions, int* rankings) {
+void receive_next_move(FILE* readStream, int id, int* positions, int* rankings) {
     char buffer[100];
     int targetSite = 0;
     int readChars = 0;
@@ -164,7 +167,7 @@ void receive_next_move(FILE* readStream, int id, int playersCount,
         errorReturnDealer(stdout, E_DEALER_COMMS_ERROR, 1);
     }
 
-    move_player(id, targetSite, playersCount, positions, rankings);
+    move_player(id, targetSite, positions, rankings);
     player_print_path(stdout, &path, playersCount, path.siteCount,
             positions, rankings, 0);
 }
@@ -172,7 +175,7 @@ void receive_next_move(FILE* readStream, int id, int playersCount,
 /*
  *Execute the dealer's business logic.
  */
-void run_dealer(int playersCount) {
+void run_dealer() {
     int i = 0;
     int run = 1;
     int nextPlayer = 0;
@@ -201,19 +204,18 @@ void run_dealer(int playersCount) {
 
     while (run) {
         /*Next, let the player make his move, which is furtherst back*/
-        nextPlayer = calculate_next_player(playersCount, playerPositions,
-                playerRankings);
+        nextPlayer = calculate_next_player(playerPositions, playerRankings);
         fprintf(streamToPlayer[nextPlayer][WRITE_END], "YT\n");
         fflush(streamToPlayer[i][WRITE_END]);
         receive_next_move(streamToDealer[nextPlayer][READ_END], nextPlayer,
-                playersCount, playerPositions, playerRankings);
+                playerPositions, playerRankings);
     }
 }
 
 /*
  *Launch the player processes.
  */
-void run_player(int id, int playersCount, const char** playerNames) {
+void run_player(int id, const char** playerNames) {
     char buffer[100];
     char bufferCount[10];
     char bufferId[10];
@@ -249,7 +251,7 @@ void run_player(int id, int playersCount, const char** playerNames) {
 /*
  *Create child processes for the given players.
  */
-void start_players(int playersCount, const char** playerNames) {
+void start_players(const char** playerNames) {
     int i = 0;
     pid_t pid = 0;
 
@@ -268,7 +270,7 @@ void start_players(int playersCount, const char** playerNames) {
 
         if (0 == pid) {
         /*Player context*/
-            run_player(i, playersCount, playerNames);
+            run_player(i, playerNames);
             break;
         } else {
         /*Dealer context*/
@@ -278,14 +280,14 @@ void start_players(int playersCount, const char** playerNames) {
 
     if (0 < pid) {
         /*Dealer context*/
-        run_dealer(playersCount);
+        run_dealer();
     }
 }
 
 /*
  *Request the path information from the dealer.
  */
-void getPath(int playersCount, FILE* stream) {
+void getPath(FILE* stream) {
     int success = E_OK;
 
     success = player_read_path(stream, playersCount, &path);
@@ -294,15 +296,39 @@ void getPath(int playersCount, FILE* stream) {
     }
 }
 
+/*
+ *Handle the SIGHUP signal by interrupting the players.
+ */
+void sigHandler(int signal) {
+    int i = 0;
+
+    switch (signal) {
+        case SIGHUP:
+            for (i = 0; i < playersCount; i++) {
+                fprintf(streamToPlayer[i][WRITE_END], "EARLY\n");
+                fflush(streamToPlayer[i][WRITE_END]);
+            }
+            for (i = 0; i < playersCount; i++) {
+                waitpid(pids[i], NULL, 0);
+            }
+    }
+
+}
+
 int main(int argc, char* argv[]) {
     char* deckName = NULL;
     char* pathName = NULL;
     char** playerNames = NULL;
-    int playersCount = 0;
     int i = 0;
     FILE* deckStream = NULL;
     FILE* pathStream = NULL;
 
+    playersCount = 0;
+    playerPositions = NULL;
+    playerRankings = NULL;
+
+    signal(SIGHUP, sigHandler);
+    signal(SIGINT, sigHandler);
 
     /*Check for valid number of parameters*/
     if (4 > argc) {
@@ -329,11 +355,11 @@ int main(int argc, char* argv[]) {
         playerNames[i - 3] = argv[i];
     }
 
-    init_player_positions(playersCount);
-    getPath(playersCount, pathStream);
+    init_player_positions();
+    getPath(pathStream);
     fclose(pathStream);
 
-    start_players(playersCount, (const char**)playerNames);
+    start_players((const char**)playerNames);
 
     free(playerPositions);
     free(playerRankings);
