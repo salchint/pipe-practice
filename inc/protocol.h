@@ -50,6 +50,23 @@ typedef struct {
 } Path;
 
 /*
+ *Descriptor of the player and its earnings.
+ */
+typedef struct {
+    int money;
+    int v1;
+    int v2;
+    int points;
+    int a;
+    int b;
+    int c;
+    int d;
+    int e;
+} Player;
+
+
+
+/*
  *Calculate the maximum byte count of a given path.
  *Pass the number of players in the game and the number of sites in the path.
 */
@@ -64,6 +81,14 @@ int calculate_path_length(int playersCount, int siteCount) {
         + siteCount * (2 + maxDigitCountPlayers)    /*site type and capacity*/
         + 1                                         /*line break*/
         + 1;                                        /*terminating '\0'*/
+}
+
+/*
+ *Initialize all the player structure's fields.
+ */
+void reset_player(Player* player) {
+    memset(player, 0, sizeof(Player));
+    player->money = 7;
 }
 
 /*
@@ -454,6 +479,13 @@ unsigned int player_get_site_usage(const int* positions, int playersCount,
         }
     }
     return usage;
+}
+
+/*
+ *Initialize all the player structure's fields.
+ */
+void dealer_reset_player(Player* player) {
+    reset_player(player);
 }
 
 

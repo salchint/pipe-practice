@@ -47,6 +47,10 @@ int* playerRankings;
  *The actual number of players in the game.
  */
 int playersCount = 0;
+/*
+ *Array of players used for book-keeping.
+ */
+Player players[MAX_PLAYERS];
 
 /*
  *PIDs of all player processes.
@@ -146,8 +150,35 @@ void move_player(int id, int targetSite, int* positions, int* rankings) {
     }
 
     positions[id] = targetSite;
-
     rankings[id] = ranking;
+}
+
+/*
+ *Update the given player's earnings.
+ */
+void calculate_player_earnings(int id, int targetSite) {
+    switch (path.sites[targetSite].type) {
+        case MO:
+            players[id].money += 3;
+            break;
+        case DO:
+            players[id].points = (int)(players[id].money / 2);
+            players[id].money = 0;
+            break;
+        case V1:
+            players[id].v1 += 1;
+            break;
+        case V2:
+            players[id].v2 += 1;
+            break;
+        default:
+            break;
+    }
+    fprintf(stdout,
+        "Player %d Money=%d V1=%d V2=%d Points=%d A=%d B=%d C=%d D=%d E=%d\n",
+        id, players[id].money, players[id].v1, players[id].v2,
+        players[id].points, players[id].a, players[id].b, players[id].c,
+        players[id].d, players[id].e);
 }
 
 /*
@@ -166,8 +197,12 @@ void receive_next_move(FILE* readStream, int id, int* positions, int* rankings) 
     if (1 > readChars || EOF == readChars) {
         errorReturnDealer(stdout, E_DEALER_COMMS_ERROR, 1);
     }
+    if (path.siteCount < targetSite + 1) {
+        errorReturnDealer(stdout, E_DEALER_COMMS_ERROR, 1);
+    }
 
     move_player(id, targetSite, positions, rankings);
+    calculate_player_earnings(id, targetSite);
     player_print_path(stdout, &path, playersCount, path.siteCount,
             positions, rankings, 0);
 }
@@ -315,20 +350,13 @@ void sigHandler(int signal) {
 
 }
 
-int main(int argc, char* argv[]) {
+/*
+ *Check the number of args and if the files are valid.
+ */
+void verify_args(int argc, char* argv[], FILE** pathStream) {
     char* deckName = NULL;
     char* pathName = NULL;
-    char** playerNames = NULL;
-    int i = 0;
     FILE* deckStream = NULL;
-    FILE* pathStream = NULL;
-
-    playersCount = 0;
-    playerPositions = NULL;
-    playerRankings = NULL;
-
-    signal(SIGHUP, sigHandler);
-    signal(SIGINT, sigHandler);
 
     /*Check for valid number of parameters*/
     if (4 > argc) {
@@ -344,10 +372,25 @@ int main(int argc, char* argv[]) {
 
     /*Check opening the path file*/
     pathName = argv[2];
-    pathStream = fopen(pathName, "r");
-    if (NULL == pathStream) {
+    *pathStream = fopen(pathName, "r");
+    if (NULL == *pathStream) {
         errorReturnDealer(stderr, E_DEALER_INVALID_PATH, 1);
     }
+
+}
+
+int main(int argc, char* argv[]) {
+    char** playerNames = NULL;
+    int i = 0;
+    FILE* pathStream = NULL;
+
+    playersCount = 0;
+    playerPositions = NULL;
+    playerRankings = NULL;
+
+    signal(SIGHUP, sigHandler);
+
+    verify_args(argc, argv, &pathStream);
 
     /*Remember the player program names*/
     playerNames = malloc((argc - 3) * sizeof(char*));
@@ -355,6 +398,9 @@ int main(int argc, char* argv[]) {
         playerNames[i - 3] = argv[i];
     }
 
+    for (i = 0; i < playersCount; i++) {
+         dealer_reset_player(players + i);
+    }
     init_player_positions();
     getPath(pathStream);
     fclose(pathStream);
