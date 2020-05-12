@@ -360,6 +360,18 @@ void dealer_broadcast_player_move(FILE** streams, int playersCount,
 }
 
 /*
+ *Send DONE to all participating players.
+ */
+void dealer_broadcast_end(FILE** streams, int playersCount) {
+    int i = 0;
+
+    for (i = 0; i < playersCount; i++) {
+        fprintf(streams[i], "DONE\n");
+        fflush(streams[i]);
+    }
+}
+
+/*
  *Initialize all the path structure's fields.
  */
 void player_reset_path(Path* path) {
@@ -559,6 +571,25 @@ void dealer_reset_player(Player* player) {
     reset_player(player);
 }
 
+/*
+ *Check if the game has ended, i.e. all players are at the final site.
+ *Returns non-zero if it is.
+ */
+int dealer_is_finished(int playersCount, int siteCount,
+        const int* positions, const int* rankings) {
+    int i = 0;
+
+    /*The game is over if we found a player at the very end of the path*/
+    /*with the maximum possible ranking;*/
+    for (i = 0; i < playersCount; i++) {
+        if ((playersCount - 1) == rankings[i]) {
+            if ((siteCount - 1) == positions[i]){
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
 
 #endif
 

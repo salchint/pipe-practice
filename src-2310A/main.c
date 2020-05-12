@@ -139,15 +139,18 @@ void make_move(int playersCount) {
 /*
  *Upon receiving some message, execute it as long as it is valid.
  */
-void process_command(const char* command, int playersCount) {
+int process_command(const char* command, int playersCount) {
     if (0 == strncmp("EARLY", command, 5u)) {
         errorReturn(stderr, E_EARLY_GAME_OVER);
+    } else if (0 == strncmp("DONE", command, 4u)) {
+        return 0;
     } else if (0 == strncmp("YT", command, 2u)) {
         make_move(playersCount);
     } else if (0 == strncmp("HAP", command, 3u)) {
         player_process_move_broadcast(command, playerPositions, playerRankings,
                 playersCount, ownId, &thisPlayer);
     }
+    return 1;
 }
 
 /*
@@ -155,18 +158,19 @@ void process_command(const char* command, int playersCount) {
  */
 void run_game(int playersCount) {
     char command[100];
+    int run = 1;
 
     getPath(playersCount);
 
     /*player_print_path(stderr, &path, playersCount, path.siteCount,*/
             /*playerPositions, playerRankings);*/
 
-    for (;;) {
+    while (run) {
         if (!fgets(command, sizeof(command), stdin)) {
             player_free_path(&path);
             errorReturn(stderr, E_COMMS_ERROR);
         }
-        process_command(command, playersCount);
+        run = process_command(command, playersCount);
     }
 }
 

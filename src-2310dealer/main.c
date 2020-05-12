@@ -197,8 +197,9 @@ void calculate_player_earnings(int id, int targetSite, int* pointDiff,
 
 /*
  *Listen for the next move from the given player.
+ *Returns zero in case the game has ended, non-zero else.
  */
-void receive_next_move(FILE* readStream, int id, int* positions, int* rankings) {
+int receive_next_move(FILE* readStream, int id, int* positions, int* rankings) {
     char buffer[100];
     int targetSite = 0;
     int readChars = 0;
@@ -225,6 +226,23 @@ void receive_next_move(FILE* readStream, int id, int* positions, int* rankings) 
             positions, rankings, 0);
     dealer_broadcast_player_move(broadcastStreams, playersCount, id,
             targetSite, pointDiff, moneyDiff, newCard);
+
+    return dealer_is_finished(playersCount, path.siteCount, positions, rankings);
+}
+
+void print_scores(int playersCount) {
+    int i = 0;
+
+    fprintf(stdout, "Scores: ");
+    for (i = 0; i < playersCount; i++) {
+        players[i].points += players[i].v1;
+        players[i].points += players[i].v2;
+        fprintf(stdout, "%d", players[i].points);
+        if (i < playersCount - 1) {
+            fputc(',', stdout);
+        }
+    }
+    fputc('\n', stdout);
 }
 
 /*
@@ -261,9 +279,13 @@ void run_dealer() {
         /*Next, let the player make his move, which is furtherst back*/
         nextPlayer = calculate_next_player(playerPositions, playerRankings);
         dealer_request_next_move(streamToPlayer[nextPlayer][WRITE_END]);
-        receive_next_move(streamToDealer[nextPlayer][READ_END], nextPlayer,
-                playerPositions, playerRankings);
+        run = receive_next_move(streamToDealer[nextPlayer][READ_END], nextPlayer,
+                playerPositions, playerRankings) ? 0 : 1;
     }
+
+    /*Finally, quit all the players and print the scores*/
+    dealer_broadcast_end(broadcastStreams, playersCount);
+    print_scores(playersCount);
 }
 
 /*
@@ -425,6 +447,10 @@ int main(int argc, char* argv[]) {
     fclose(pathStream);
 
     start_players((const char**)playerNames);
+
+    for (i = 0; i < playersCount; i++) {
+        waitpid(pids[i], NULL, 0);
+    }
 
     free(playerPositions);
     free(playerRankings);
