@@ -72,6 +72,10 @@ FILE* streamToPlayer[MAX_PLAYERS][2];
  *Streams sourcing from all players.
  */
 FILE* streamToDealer[MAX_PLAYERS][2];
+/*
+ *Streams that are to be used for broadcasts.
+ */
+FILE* broadcastStreams[MAX_PLAYERS];
 
 /*
  *Initialize the global field representing all players' positions.
@@ -102,6 +106,8 @@ int open_stream(int playerId) {
         || streamToDealer[playerId][WRITE_END])) {
         errorReturnDealer(stderr, E_DEALER_INVALID_START_PLAYER, 0);
     }
+
+    broadcastStreams[playerId] = streamToPlayer[playerId][WRITE_END];
     return E_DEALER_OK;
 }
 
@@ -156,13 +162,21 @@ void move_player(int id, int targetSite, int* positions, int* rankings) {
 /*
  *Update the given player's earnings.
  */
-void calculate_player_earnings(int id, int targetSite) {
+void calculate_player_earnings(int id, int targetSite, int* pointDiff,
+        int* moneyDiff, int* newCard) {
+    *pointDiff = 0;
+    *moneyDiff = 0;
+    *newCard = 0;
+
     switch (path.sites[targetSite].type) {
         case MO:
             players[id].money += 3;
+            *moneyDiff = 3;
             break;
         case DO:
-            players[id].points = (int)(players[id].money / 2);
+            *pointDiff = (int)(players[id].money / 2);
+            players[id].points += *pointDiff;
+            *moneyDiff = -(players[id].money);
             players[id].money = 0;
             break;
         case V1:
@@ -188,6 +202,9 @@ void receive_next_move(FILE* readStream, int id, int* positions, int* rankings) 
     char buffer[100];
     int targetSite = 0;
     int readChars = 0;
+    int pointDiff = 0;
+    int moneyDiff = 0;
+    int newCard = 0;
 
     if (!fgets(buffer, sizeof(buffer), readStream)) {
         errorReturnDealer(stdout, E_DEALER_COMMS_ERROR, 1);
@@ -202,9 +219,12 @@ void receive_next_move(FILE* readStream, int id, int* positions, int* rankings) 
     }
 
     move_player(id, targetSite, positions, rankings);
-    calculate_player_earnings(id, targetSite);
+    calculate_player_earnings(id, targetSite, &pointDiff, &moneyDiff,
+            &newCard);
     player_print_path(stdout, &path, playersCount, path.siteCount,
             positions, rankings, 0);
+    dealer_broadcast_player_move(broadcastStreams, playersCount, id,
+            targetSite, pointDiff, moneyDiff, newCard);
 }
 
 /*
@@ -240,8 +260,7 @@ void run_dealer() {
     while (run) {
         /*Next, let the player make his move, which is furtherst back*/
         nextPlayer = calculate_next_player(playerPositions, playerRankings);
-        fprintf(streamToPlayer[nextPlayer][WRITE_END], "YT\n");
-        fflush(streamToPlayer[i][WRITE_END]);
+        dealer_request_next_move(streamToPlayer[nextPlayer][WRITE_END]);
         receive_next_move(streamToDealer[nextPlayer][READ_END], nextPlayer,
                 playerPositions, playerRankings);
     }

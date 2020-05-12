@@ -24,9 +24,9 @@ int* playerRankings;
 int ownId;
 
 /*
- *This player's money balance.
+ *This player's earnings.
  */
-int money;
+Player thisPlayer;
 
 /*
  *Initialize the global field representing all players' positions.
@@ -55,8 +55,11 @@ void getPath(int playersCount) {
  *Determine the target of the next move according to the player's strategy.
  *We start at the given current position not taking the site's capacity into
  *account.
+ *ignoreMo: As this function might be called repeatedly, rule #2 only applies in the
+ *first iteration.
  */
-unsigned int calculate_move_to(int playersCount, unsigned int ownPosition) {
+unsigned int calculate_move_to(int playersCount, unsigned int ownPosition,
+        int ignoreMo) {
     int doSiteAhead = -1;
     unsigned int v1SiteAhead = -1u;
     unsigned int v2SiteAhead = -1u;
@@ -64,7 +67,7 @@ unsigned int calculate_move_to(int playersCount, unsigned int ownPosition) {
     unsigned int siteToGo = -1u;
 
     /*Rule #1: Go to next Do if you have money*/
-    if (0 < money) {
+    if (0 < thisPlayer.money) {
         doSiteAhead = player_find_x_site_ahead(DO, ownPosition, &path);
         if (-1 != doSiteAhead) {
             siteToGo = doSiteAhead;
@@ -72,9 +75,9 @@ unsigned int calculate_move_to(int playersCount, unsigned int ownPosition) {
     }
 
     /*Rule #2: Go to the next site if it is Mo.*/
-    if (-1u == siteToGo) {
+    if (-1u == siteToGo && !ignoreMo) {
         if (MO == path.sites[ownPosition + 1].type) {
-            money += 3;
+            thisPlayer.money += 3;
             siteToGo = ownPosition + 1;
         }
     }
@@ -101,7 +104,8 @@ void make_move(int playersCount) {
     unsigned int barrierAhead = -1u;
     unsigned int siteToGo = -1u;
     int ownPosition = playerPositions[ownId];
-    int siteUsage = 0;
+    int moved = 0;
+    int ignoreMo = 0;
 
     /*Rule #0: Don't move beyond the end of the path.*/
     if (path.siteCount <= ownPosition + 1) {
@@ -113,23 +117,21 @@ void make_move(int playersCount) {
             &path);
 
     do {
-        siteToGo = calculate_move_to(playersCount, ownPosition);
-        siteUsage = player_get_site_usage(playerPositions, playersCount,
-                siteToGo);
-        if (-1u == siteToGo) {
-            /*Make sure to not move beyond the path*/
-            break;
+        siteToGo = calculate_move_to(playersCount, ownPosition, ignoreMo);
+        ignoreMo = 1;
+        /*fprintf(stderr, "Positions: %2d %2d %2d \n",*/
+                /*playerPositions[0],*/
+                /*playerPositions[1],*/
+                /*playerPositions[2]*/
+               /*);*/
+        if (-1u != siteToGo) {
+            /*Make sure to not move beyond the end of the path*/
+            moved = player_forward_to(stdout, siteToGo, barrierAhead,
+                    playersCount, playerPositions, ownId, &path);
         }
-    } while (path.sites[siteToGo].capacity <= siteUsage);
+        ownPosition = siteToGo;
+    } while (!moved && (-1 != siteToGo));
 
-    if (-1u != siteToGo) {
-        player_forward_to(stdout, siteToGo, barrierAhead, playerPositions,
-                ownId);
-    }
-    /*
-     *player_print_path(stderr, &path, playersCount, path.siteCount,
-     *        playerPositions, playerRankings);
-     */
     return;
 }
 
@@ -141,6 +143,9 @@ void process_command(const char* command, int playersCount) {
         errorReturn(stderr, E_EARLY_GAME_OVER);
     } else if (0 == strncmp("YT", command, 2u)) {
         make_move(playersCount);
+    } else if (0 == strncmp("HAP", command, 3u)) {
+        player_process_move_broadcast(command, playerPositions, playerRankings,
+                playersCount, ownId, &thisPlayer);
     }
 }
 
@@ -196,7 +201,7 @@ int main(int argc, char* argv[]) {
         errorReturn(stderr, E_INVALID_PLAYER_ID);
     }
     ownId = playerID;
-    money = 7;
+    dealer_reset_player(&thisPlayer);
 
     init_player_positions(playersCount);
 

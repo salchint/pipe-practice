@@ -232,7 +232,7 @@ int deserialize_path(FILE* stream, Path* path, int playersCount) {
     siteIdx += 1;
 
     /*Deserialize all the sites*/
-    for (i = 0; i < path->siteCount && '\n' != *pos && '\0' != *pos; i++) {
+    for (i = 0; i < (int)path->siteCount && '\n' != *pos && '\0' != *pos; i++) {
         if (is_barrier(pos)) {
             path->sites[siteIdx].capacity = playersCount;
             path->sites[siteIdx].type = BARRIER;
@@ -284,7 +284,7 @@ int verify_path(Path* path) {
 /*
  *Determine the rankings of players if they are on the same site.
  */
-void calculate_rankings(const int* positions, int* rankings,
+void calculate_initial_rankings(const int* positions, int* rankings,
         int playersCount) {
     int playerIdx = 0;
     int higherIdx = 0;
@@ -335,6 +335,28 @@ int** alloc_map(int rows, int columns) {
 void player_request_path(FILE* stream) {
     fprintf(stream, "^");
     fflush(stream);
+}
+
+/*
+ *Dealer asks the player for his next move.
+ */
+void dealer_request_next_move(FILE* stream) {
+    fprintf(stream, "YT\n");
+    fflush(stream);
+}
+
+/*
+ *Send informations of a player's move to all participating players.
+ */
+void dealer_broadcast_player_move(FILE** streams, int playersCount,
+        int id, int targetSite, int pointDiff, int moneyDiff, int newCard) {
+    int i = 0;
+
+    for (i = 0; i < playersCount; i++) {
+        fprintf(streams[i], "HAP%d,%d,%d,%d,%d\n",
+            id, targetSite, pointDiff, moneyDiff, newCard);
+        fflush(streams[i]);
+    }
 }
 
 /*
@@ -400,11 +422,11 @@ void player_print_path(FILE* output, Path* path, int playersCount,
     if (initialSorting) {
         /*Get the initial rankings of all the players on their
          * positions/sites.*/
-        calculate_rankings(positions, rankings, playersCount);
+        calculate_initial_rankings(positions, rankings, playersCount);
     }
 
     /*Print the first line representing the path.*/
-    for (i = 0; i < path->siteCount; i++) {
+    for (i = 0; i < (int)path->siteCount; i++) {
         fprintf(output, "%s ", convert_site_name(path->sites[i].type));
         lineLength += 3;
     }
@@ -432,20 +454,13 @@ void player_print_path(FILE* output, Path* path, int playersCount,
 
     free(map);
 }
-/*
- *Determine the rankings of players if they are on the same site.
- */
-void player_calculate_rankings(const int* positions, int* rankings,
-        int playersCount) {
-    calculate_rankings(positions, rankings, playersCount);
-}
 
 /*
  *Find the next site matching the given site type.
  */
 int player_find_x_site_ahead(enum SiteTypes type, int ownPosition,
         const Path* path) {
-    int i = 0;
+    size_t i = 0;
     for (i = ownPosition + 1; i < path->siteCount; i++) {
         if (type == path->sites[i].type) {
                 return i;
@@ -453,18 +468,6 @@ int player_find_x_site_ahead(enum SiteTypes type, int ownPosition,
     }
     return -1;
 }
-
-/*
- *Let this player move forward to the site specified.
- */
-void player_forward_to(FILE* output, int siteIdx, int barrierIdx,
-        int* positions, int ownId) {
-    siteIdx = MIN(siteIdx, barrierIdx);
-    positions[ownId] = siteIdx;
-    fprintf(output, "DO%d\n", siteIdx);
-    fflush(output);
-}
-
 /*
  *Calculate the number of players positioned on the given site.
  */
@@ -479,6 +482,74 @@ unsigned int player_get_site_usage(const int* positions, int playersCount,
         }
     }
     return usage;
+}
+
+/*
+ *Let this player move forward to the site specified.
+ *Returns 1 if successful, 0 if the site is full.
+ */
+int player_forward_to(FILE* output, int siteIdx, int barrierIdx,
+        int playersCount, int* positions, int ownId, Path* path) {
+    int siteUsage = 0;
+
+    siteIdx = MIN(siteIdx, barrierIdx);
+
+    /*Check if the targeted site still has capacity*/
+    siteUsage = player_get_site_usage(positions, playersCount,
+            siteIdx);
+    /*
+     *fprintf(stderr, "Make move to %d cap:%d use:%d\n", siteIdx,
+     *        path->sites[siteIdx].capacity, siteUsage);
+     */
+
+
+    if (path->sites[siteIdx].capacity <= siteUsage) {
+        /*This site is full*/
+        return 0;
+    }
+
+    positions[ownId] = siteIdx;
+    fprintf(output, "DO%d\n", siteIdx);
+    fflush(output);
+    return 1;
+}
+
+/*
+ *Update the player positions map for the given move.
+ */
+void player_update_position(int id, int playersCount, int* positions,
+        int* rankings, int siteIdx) {
+    int ranking = 0;
+
+    ranking = player_get_site_usage(positions, playersCount, siteIdx);
+
+    positions[id] = siteIdx;
+    rankings[id] = ranking;
+}
+
+/*
+ *Deserialize the move operation of the given player for own book-keeping.
+ */
+void player_process_move_broadcast(const char* command, int* positions,
+        int* rankings, int playersCount, int ownId, Player* thisPlayer) {
+    int id = 0;
+    int siteIdx = 0;
+    int pointDiff = 0;
+    int moneyDiff = 0;
+    int newCard = 0;
+    int readChars = 0;
+
+    readChars = sscanf(command, "HAP%d,%d,%d,%d,%d",
+            &id, &siteIdx, &pointDiff, &moneyDiff, &newCard);
+    if (3 > readChars) {
+        errorReturn(stderr, E_COMMS_ERROR);
+    }
+
+    if (ownId == id) {
+        thisPlayer->money += moneyDiff;
+    } else {
+        player_update_position(id, playersCount, positions, rankings, siteIdx);
+    }
 }
 
 /*

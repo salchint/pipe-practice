@@ -101,7 +101,7 @@ void make_move(int playersCount) {
     unsigned int barrierAhead = -1u;
     unsigned int siteToGo = -1u;
     int ownPosition = playerPositions[ownId];
-    int siteUsage = 0;
+    int moved = 0;
 
     /*Rule #0: Don't move beyond the end of the path.*/
     if (path.siteCount <= ownPosition + 1) {
@@ -114,18 +114,20 @@ void make_move(int playersCount) {
 
     do {
         siteToGo = calculate_move_to(playersCount, ownPosition);
-        siteUsage = player_get_site_usage(playerPositions, playersCount,
-                siteToGo);
-        if (-1u == siteToGo) {
-            /*Make sure to not move beyond the path*/
-            break;
+        fprintf(stderr, "Make move to %d cap:%d\n", siteToGo,
+                path.sites[siteToGo].capacity);
+        fprintf(stderr, "Positions: %2d %2d %2d \n",
+                playerPositions[0],
+                playerPositions[1],
+                playerPositions[2]
+               );
+        if (-1u != siteToGo) {
+            /*Make sure to not move beyond the end of the path*/
+            moved = player_forward_to(stdout, siteToGo, barrierAhead,
+                    playersCount, playerPositions, ownId, &path);
         }
-    } while (path.sites[siteToGo].capacity <= siteUsage);
+    } while (!moved && (-1 != siteToGo));
 
-    if (-1u != siteToGo) {
-        player_forward_to(stdout, siteToGo, barrierAhead, playerPositions,
-                ownId);
-    }
     /*
      *player_print_path(stderr, &path, playersCount, path.siteCount,
      *        playerPositions, playerRankings);

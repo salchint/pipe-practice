@@ -176,7 +176,7 @@ TEST_F(PlayerASuite, test_convert_site_type) {
 TEST_F(PlayerASuite, test_calculate_rankings) {
     int positions[] = { 0, 0, 0, 0 };
     int rankings[] = { 0, 0, 0, 0 };
-    player_calculate_rankings(positions, rankings, 4);
+    calculate_initial_rankings(positions, rankings, 4);
     EXPECT_EQ(0, rankings[3]);
     EXPECT_EQ(1, rankings[2]);
     EXPECT_EQ(2, rankings[1]);
@@ -186,7 +186,7 @@ TEST_F(PlayerASuite, test_calculate_rankings) {
 TEST_F(PlayerASuite, test_calculate_rankings_moved) {
     int positions[] = { 1, 2, 2, 0 };
     int rankings[] = { 0, 0, 0, 0 };
-    player_calculate_rankings(positions, rankings, 4);
+    calculate_initial_rankings(positions, rankings, 4);
     EXPECT_EQ(0, rankings[3]);
     EXPECT_EQ(0, rankings[2]);
     EXPECT_EQ(1, rankings[1]);
