@@ -77,8 +77,9 @@ unsigned int calculate_move_to(int playersCount, unsigned int ownPosition,
     /*Rule #2: Go to the next site if it is Mo.*/
     if (-1u == siteToGo && !ignoreMo) {
         if (MO == path.sites[ownPosition + 1].type) {
-            thisPlayer.money += 3;
             siteToGo = ownPosition + 1;
+            /*BTW, money balance is adapted upon receiving the dealer's
+             * broadcast.*/
         }
     }
 
