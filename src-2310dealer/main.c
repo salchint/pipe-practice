@@ -291,7 +291,7 @@ void run_player(int id, const char** playerNames) {
     char buffer[100];
     char bufferCount[10];
     char bufferId[10];
-    /*int devNull = 0;*/
+    int devNull = 0;
 
     *buffer = '\0';
     *bufferCount = '\0';
@@ -303,9 +303,9 @@ void run_player(int id, const char** playerNames) {
     dup2(pipeToPlayerNo[id][READ_END], READ_END);
     dup2(pipeToDealerNo[id][WRITE_END], WRITE_END);
 
-    /*[>Redirect stderr to /dev/null<]*/
-    /*devNull = open("/dev/null", O_WRONLY);*/
-    /*dup2(STDERR_FILENO, devNull);*/
+    /*Redirect stderr to /dev/null*/
+    devNull = open("/dev/null", O_WRONLY);
+    dup2(devNull, STDERR_FILENO);
 
     fclose(streamToPlayer[id][READ_END]);
     fclose(streamToPlayer[id][WRITE_END]);

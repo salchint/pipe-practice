@@ -256,8 +256,8 @@ void run_game(int playersCount) {
 
     getPath(playersCount);
 
-    /*player_print_path(stderr, &path, playersCount, path.siteCount,*/
-            /*playerPositions, playerRankings);*/
+    player_print_path(stderr, &path, playersCount, path.siteCount,
+            playerPositions, playerRankings, 1);
 
     while (run) {
         if (!fgets(command, sizeof(command), stdin)) {
