@@ -550,7 +550,7 @@ void player_update_position(int id, int playersCount, int* positions,
  */
 void player_process_move_broadcast(const char* command, int* positions,
         int* rankings, int playersCount, int ownId, Player* thisPlayer,
-        Player** otherPlayers) {
+        Player** otherPlayers, int siteCount) {
     int id = 0;
     int siteIdx = 0;
     int pointDiff = 0;
@@ -560,7 +560,13 @@ void player_process_move_broadcast(const char* command, int* positions,
 
     readChars = sscanf(command, "HAP%d,%d,%d,%d,%d",
             &id, &siteIdx, &pointDiff, &moneyDiff, &newCard);
-    if (3 > readChars) {
+    if (5 > readChars || EOF == readChars) {
+        error_return(stderr, E_COMMS_ERROR);
+    }
+    if (!(0 <= id && id < playersCount)) {
+        error_return(stderr, E_COMMS_ERROR);
+    }
+    if (!(0 <= siteIdx && siteIdx < siteCount)) {
         error_return(stderr, E_COMMS_ERROR);
     }
 

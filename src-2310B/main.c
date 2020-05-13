@@ -242,7 +242,10 @@ int process_command(const char* command, int playersCount) {
         make_move(playersCount);
     } else if (0 == strncmp("HAP", command, 3u)) {
         player_process_move_broadcast(command, playerPositions, playerRankings,
-                playersCount, ownId, &thisPlayer, (Player**)&otherPlayers);
+                playersCount, ownId, &thisPlayer, (Player**)&otherPlayers,
+                path.siteCount);
+    } else {
+        error_return(stderr, E_COMMS_ERROR);
     }
     return 1;
 }
