@@ -100,7 +100,7 @@ int open_stream(int playerId) {
         || streamToPlayer[playerId][WRITE_END]
         || streamToDealer[playerId][READ_END]
         || streamToDealer[playerId][WRITE_END])) {
-        errorReturnDealer(stderr, E_DEALER_INVALID_START_PLAYER, 0);
+        error_return_dealer(stderr, E_DEALER_INVALID_START_PLAYER, 0);
     }
 
     broadcastStreams[playerId] = streamToPlayer[playerId][WRITE_END];
@@ -204,15 +204,15 @@ int receive_next_move(FILE* readStream, int id, int* positions, int* rankings) {
     int newCard = 0;
 
     if (!fgets(buffer, sizeof(buffer), readStream)) {
-        errorReturnDealer(stdout, E_DEALER_COMMS_ERROR, 1);
+        error_return_dealer(stdout, E_DEALER_COMMS_ERROR, 1);
     }
 
     readChars = sscanf(buffer, "DO%d", &targetSite);
     if (1 > readChars || EOF == readChars) {
-        errorReturnDealer(stdout, E_DEALER_COMMS_ERROR, 1);
+        error_return_dealer(stdout, E_DEALER_COMMS_ERROR, 1);
     }
     if (path.siteCount < targetSite + 1) {
-        errorReturnDealer(stdout, E_DEALER_COMMS_ERROR, 1);
+        error_return_dealer(stdout, E_DEALER_COMMS_ERROR, 1);
     }
 
     move_player(id, targetSite, positions, rankings);
@@ -317,7 +317,7 @@ void run_player(int id, const char** playerNames) {
     execlp(playerNames[id], playerNames[id], bufferCount, bufferId, NULL);
 
     /*Should not happen!*/
-    errorReturnDealer(stderr, E_DEALER_INVALID_START_PLAYER, 0);
+    error_return_dealer(stderr, E_DEALER_INVALID_START_PLAYER, 0);
 }
 
 /*
@@ -337,7 +337,7 @@ void start_players(const char** playerNames) {
         pid = fork();
 
         if (0 > pid) {
-            errorReturnDealer(stderr, E_DEALER_INVALID_START_PLAYER, 1);
+            error_return_dealer(stderr, E_DEALER_INVALID_START_PLAYER, 1);
         }
 
         if (0 == pid) {
@@ -364,7 +364,7 @@ void getPath(FILE* stream) {
 
     success = player_read_path(stream, playersCount, &path);
     if(E_OK != success) {
-        errorReturnDealer(stderr, E_DEALER_INVALID_PATH, 1);
+        error_return_dealer(stderr, E_DEALER_INVALID_PATH, 1);
     }
 }
 
@@ -397,21 +397,21 @@ void verify_args(int argc, char* argv[], FILE** pathStream) {
 
     /*Check for valid number of parameters*/
     if (4 > argc) {
-        errorReturnDealer(stderr, E_DEALER_INVALID_ARGS_COUNT, 1);
+        error_return_dealer(stderr, E_DEALER_INVALID_ARGS_COUNT, 1);
     }
 
     /*Check opening the deck file*/
     deckName = argv[1];
     deckStream = fopen(deckName, "r");
     if (NULL == deckStream) {
-        errorReturnDealer(stderr, E_DEALER_INVALID_DECK, 1);
+        error_return_dealer(stderr, E_DEALER_INVALID_DECK, 1);
     }
 
     /*Check opening the path file*/
     pathName = argv[2];
     *pathStream = fopen(pathName, "r");
     if (NULL == *pathStream) {
-        errorReturnDealer(stderr, E_DEALER_INVALID_PATH, 1);
+        error_return_dealer(stderr, E_DEALER_INVALID_PATH, 1);
     }
 
 }

@@ -10,7 +10,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include "errorReturn.h"
+#include "../inc/errorReturn.h"
 
 #ifndef MAX
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
@@ -561,7 +561,7 @@ void player_process_move_broadcast(const char* command, int* positions,
     readChars = sscanf(command, "HAP%d,%d,%d,%d,%d",
             &id, &siteIdx, &pointDiff, &moneyDiff, &newCard);
     if (3 > readChars) {
-        errorReturn(stderr, E_COMMS_ERROR);
+        error_return(stderr, E_COMMS_ERROR);
     }
 
     if (ownId == id) {

@@ -25,7 +25,7 @@ enum PlayerErrorCodes {
 /*
  *Error messages sent to stderr.
  */
-const char* PlayerErrorTexts[] = {
+const char* playerErrorTexts[] = {
     "",
     "Usage: player pcount ID",
     "Invalid player count",
@@ -50,7 +50,7 @@ enum DealerErrorCodes {
 /*
  *Error messages sent to stderr.
  */
-const char* DealerErrorTexts[] = {
+const char* dealerErrorTexts[] = {
     "",
     "Usage: 2310dealer deck path p1 {p2}",
     "Error reading deck",
@@ -62,16 +62,17 @@ const char* DealerErrorTexts[] = {
 /*
  *Print an error message to stderr and exit the program.
  */
-void errorReturn(FILE* destination, enum PlayerErrorCodes code) {
-    fprintf(destination, "%s\n", PlayerErrorTexts[code]);
+void error_return(FILE* destination, enum PlayerErrorCodes code) {
+    fprintf(destination, "%s\n", playerErrorTexts[code]);
     exit(code);
 }
 
 /*
  *Print an error message to stderr and exit the program.
  */
-void errorReturnDealer(FILE* destination, enum DealerErrorCodes code, int dealerContext) {
-    fprintf(destination, "%s\n", DealerErrorTexts[code]);
+void error_return_dealer(FILE* destination, enum DealerErrorCodes code,
+    int dealerContext) {
+    fprintf(destination, "%s\n", dealerErrorTexts[code]);
     if (dealerContext) {
         exit(code);
     }

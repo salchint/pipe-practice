@@ -47,7 +47,7 @@ void getPath(int playersCount) {
     player_request_path(stdout);
     success = player_read_path(stdin, playersCount, &path);
     if(E_OK != success) {
-        errorReturn(stderr, success);
+        error_return(stderr, success);
     }
 }
 
@@ -141,7 +141,7 @@ void make_move(int playersCount) {
  */
 int process_command(const char* command, int playersCount) {
     if (0 == strncmp("EARLY", command, 5u)) {
-        errorReturn(stderr, E_EARLY_GAME_OVER);
+        error_return(stderr, E_EARLY_GAME_OVER);
     } else if (0 == strncmp("DONE", command, 4u)) {
         return 0;
     } else if (0 == strncmp("YT", command, 2u)) {
@@ -168,7 +168,7 @@ void run_game(int playersCount) {
     while (run) {
         if (!fgets(command, sizeof(command), stdin)) {
             player_free_path(&path);
-            errorReturn(stderr, E_COMMS_ERROR);
+            error_return(stderr, E_COMMS_ERROR);
         }
         run = process_command(command, playersCount);
     }
@@ -181,29 +181,29 @@ int main(int argc, char* argv[]) {
 
     /*Check for valid number of parameters*/
     if (3 != argc) {
-        errorReturn(stderr, E_INVALID_ARGS_COUNT);
+        error_return(stderr, E_INVALID_ARGS_COUNT);
     }
 
     /*Check for valid number of players*/
     for (i = 0; i < strlen(argv[1]); i++) {
         if (!isdigit(argv[1][i])) {
-            errorReturn(stderr, E_INVALID_PLAYER_COUNT);
+            error_return(stderr, E_INVALID_PLAYER_COUNT);
         }
     }
     playersCount = atoi(argv[1]);
     if (1 > playersCount) {
-        errorReturn(stderr, E_INVALID_PLAYER_COUNT);
+        error_return(stderr, E_INVALID_PLAYER_COUNT);
     }
 
     /*Check for valid player ID*/
     for (i = 0; i < strlen(argv[2]); i++) {
         if (!isdigit(argv[2][i])) {
-            errorReturn(stderr, E_INVALID_PLAYER_ID);
+            error_return(stderr, E_INVALID_PLAYER_ID);
         }
     }
     playerID = atoi(argv[2]);
     if (playersCount <= playerID) {
-        errorReturn(stderr, E_INVALID_PLAYER_ID);
+        error_return(stderr, E_INVALID_PLAYER_ID);
     }
     ownId = playerID;
     dealer_reset_player(&thisPlayer);
