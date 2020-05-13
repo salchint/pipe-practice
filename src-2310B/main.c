@@ -24,9 +24,15 @@ int* playerRankings;
 int ownId;
 
 /*
- *This player's money balance.
+ *This player's earnings.
  */
-int money;
+Player thisPlayer;
+
+/*
+ *Book-keeping representation of participating players.
+ */
+Player otherPlayers[MAX_PLAYERS];
+
 
 /*
  *Initialize the global field representing all players' positions.
@@ -47,8 +53,126 @@ void getPath(int playersCount) {
     player_request_path(stdout);
     success = player_read_path(stdin, playersCount, &path);
     if(E_OK != success) {
-        errorReturn(stderr, success);
+        error_return(stderr, success);
     }
+}
+
+/*
+ *Determine the next site according to this rule and return it.
+ *Rule: If the next site is not full and all other players are on later sites
+ *than us, move forward one site.
+ */
+unsigned int rule_we_are_last(int playersCount) {
+    int i = 0;
+    int siteUsage = 0;
+    unsigned int ownPosition = playerPositions[ownId];
+
+    siteUsage = player_get_site_usage(playerPositions, playersCount,
+            ownPosition + 1);
+
+    if (siteUsage < path.sites[ownPosition + 1].capacity) {
+        if (0 == playerRankings[ownId]) {
+            for (i = 0; i < playersCount; i++) {
+                if (ownPosition >= playerPositions[i] && ownId != i) {
+                   return -1u;
+                }
+            }
+            return ownPosition + 1;
+        }
+    }
+    return -1u;
+}
+
+/*
+ *Determine the next site according to this rule and return it.
+ *Rule: If we have an odd amount of money, and there is a Mo between us and the
+ *next barrier, then go there.
+ */
+unsigned int rule_odd_money(int playersCount, unsigned int barrierAhead) {
+    unsigned int moSiteAhead = -1u;
+    unsigned int ownPosition = playerPositions[ownId];
+
+    if (1 == (thisPlayer.money % 2)) {
+        moSiteAhead =  (unsigned int)player_find_x_site_ahead(MO, ownPosition,
+                &path);
+        if (moSiteAhead < barrierAhead) {
+            return moSiteAhead;
+        }
+    }
+    return -1u;
+}
+
+/*
+ *Count the cards of all the other players.
+ */
+int get_max_collected_cards(int playersCount) {
+    int i = 0;
+    int maxCards = 0;
+
+    for (i = 0; i < playersCount; i++) {
+        if (ownId != i) {
+            maxCards = MAX(maxCards, otherPlayers[i].overallCards);
+        }
+    }
+    return maxCards;
+}
+
+/*
+ *Determine the next site according to this rule and return it.
+ *Rule: If we have the most cards or if everyone has zero cards and there is a
+ *Ri between us and the next barrier, then go there.
+ */
+unsigned int rule_draw_card(int playersCount, unsigned int barrierAhead) {
+    unsigned int riSiteAhead = -1u;
+    unsigned int ownPosition = playerPositions[ownId];
+    int maxCards = 0;
+
+    riSiteAhead =  (unsigned int)player_find_x_site_ahead(MO, ownPosition,
+            &path);
+    if (riSiteAhead < barrierAhead) {
+        maxCards = get_max_collected_cards(playersCount);
+        if (thisPlayer.overallCards > maxCards
+            || MAX(thisPlayer.overallCards, maxCards) == 0) {
+            return riSiteAhead;
+        }
+    }
+    return -1u;
+}
+
+/*
+ *Determine the next site according to this rule and return it.
+ *Rule: If there is a V2 between us and the next barrier, then go there.
+ */
+unsigned int rule_goto_v2(int playersCount, unsigned int barrierAhead) {
+    unsigned int v2SiteAhead = -1u;
+    unsigned int ownPosition = playerPositions[ownId];
+
+    v2SiteAhead =  (unsigned int)player_find_x_site_ahead(V2, ownPosition,
+            &path);
+    if (v2SiteAhead < barrierAhead) {
+        return v2SiteAhead;
+    }
+    return -1u;
+}
+
+
+/*
+ *Determine the next site according to this rule and return it.
+ *Rule: Move forward to the earliest site which has room.
+ */
+unsigned int rule_next_free(int playersCount) {
+    unsigned int i = 0;
+    int siteUsage = 0;
+    unsigned int ownPosition = playerPositions[ownId];
+
+    for (i = ownPosition + 1; i < path.siteCount; i++) {
+        siteUsage = player_get_site_usage(playerPositions, playersCount,
+                ownPosition + 1);
+        if (siteUsage < path.sites[i].capacity) {
+            return i;
+        }
+    }
+    return -1u;
 }
 
 /*
@@ -56,40 +180,15 @@ void getPath(int playersCount) {
  *We start at the given current position not taking the site's capacity into
  *account.
  */
-unsigned int calculate_move_to(int playersCount, unsigned int ownPosition) {
-    int doSiteAhead = -1;
-    unsigned int v1SiteAhead = -1u;
-    unsigned int v2SiteAhead = -1u;
-    unsigned int barrierAhead = -1u;
+unsigned int calculate_move_to(int playersCount, unsigned int ownPosition,
+    unsigned int barrierAhead) {
     unsigned int siteToGo = -1u;
 
-    /*Rule #1: Go to next Do if you have money*/
-    if (0 < money) {
-        doSiteAhead = player_find_x_site_ahead(DO, ownPosition, &path);
-        if (-1 != doSiteAhead) {
-            siteToGo = doSiteAhead;
-        }
-    }
-
-    /*Rule #2: Go to the next site if it is Mo.*/
-    if (-1u == siteToGo) {
-        if (MO == path.sites[ownPosition + 1].type) {
-            money += 3;
-            siteToGo = ownPosition + 1;
-        }
-    }
-
-    /*Rule #3: Stop at the closest V1, V2 or barrier site.*/
-    if (-1u == siteToGo) {
-        v1SiteAhead =  (unsigned int)player_find_x_site_ahead(V1, ownPosition,
-                &path);
-        v2SiteAhead =  (unsigned int)player_find_x_site_ahead(V2, ownPosition,
-                &path);
-        barrierAhead = (unsigned int)player_find_x_site_ahead(BARRIER,
-                ownPosition, &path);
-        siteToGo = MIN(v1SiteAhead, v2SiteAhead);
-        siteToGo = MIN(siteToGo, barrierAhead);
-    }
+    siteToGo = rule_we_are_last(playersCount);
+    siteToGo = MIN(siteToGo, rule_odd_money(playersCount, barrierAhead));
+    siteToGo = MIN(siteToGo, rule_draw_card(playersCount, barrierAhead));
+    siteToGo = MIN(siteToGo, rule_goto_v2(playersCount, barrierAhead));
+    siteToGo = MIN(siteToGo, rule_next_free(playersCount));
 
     return siteToGo;
 }
@@ -113,37 +212,39 @@ void make_move(int playersCount) {
             &path);
 
     do {
-        siteToGo = calculate_move_to(playersCount, ownPosition);
-        fprintf(stderr, "Make move to %d cap:%d\n", siteToGo,
-                path.sites[siteToGo].capacity);
-        fprintf(stderr, "Positions: %2d %2d %2d \n",
-                playerPositions[0],
-                playerPositions[1],
-                playerPositions[2]
-               );
+        siteToGo = calculate_move_to(playersCount, ownPosition, barrierAhead);
+        /*fprintf(stderr, "Positions: %2d %2d %2d \n",*/
+                /*playerPositions[0],*/
+                /*playerPositions[1],*/
+                /*playerPositions[2]*/
+               /*);*/
         if (-1u != siteToGo) {
             /*Make sure to not move beyond the end of the path*/
             moved = player_forward_to(stdout, siteToGo, barrierAhead,
                     playersCount, playerPositions, ownId, &path);
         }
+        ownPosition = siteToGo;
     } while (!moved && (-1 != siteToGo));
 
-    /*
-     *player_print_path(stderr, &path, playersCount, path.siteCount,
-     *        playerPositions, playerRankings);
-     */
     return;
 }
 
 /*
  *Upon receiving some message, execute it as long as it is valid.
  */
-void process_command(const char* command, int playersCount) {
+int process_command(const char* command, int playersCount) {
     if (0 == strncmp("EARLY", command, 5u)) {
-        errorReturn(stderr, E_EARLY_GAME_OVER);
+        error_return(stderr, E_EARLY_GAME_OVER);
+    } else if (0 == strncmp("DONE", command, 4u)) {
+        return 0;
     } else if (0 == strncmp("YT", command, 2u)) {
+        fprintf(stderr, "B%d received YT\n", ownId);
         make_move(playersCount);
+    } else if (0 == strncmp("HAP", command, 3u)) {
+        player_process_move_broadcast(command, playerPositions, playerRankings,
+                playersCount, ownId, &thisPlayer, (Player**)&otherPlayers);
     }
+    return 1;
 }
 
 /*
@@ -151,18 +252,19 @@ void process_command(const char* command, int playersCount) {
  */
 void run_game(int playersCount) {
     char command[100];
+    int run = 1;
 
     getPath(playersCount);
 
     /*player_print_path(stderr, &path, playersCount, path.siteCount,*/
             /*playerPositions, playerRankings);*/
 
-    for (;;) {
+    while (run) {
         if (!fgets(command, sizeof(command), stdin)) {
             player_free_path(&path);
-            errorReturn(stderr, E_COMMS_ERROR);
+            error_return(stderr, E_COMMS_ERROR);
         }
-        process_command(command, playersCount);
+        run = process_command(command, playersCount);
     }
 }
 
@@ -173,32 +275,35 @@ int main(int argc, char* argv[]) {
 
     /*Check for valid number of parameters*/
     if (3 != argc) {
-        errorReturn(stderr, E_INVALID_ARGS_COUNT);
+        error_return(stderr, E_INVALID_ARGS_COUNT);
     }
 
     /*Check for valid number of players*/
     for (i = 0; i < strlen(argv[1]); i++) {
         if (!isdigit(argv[1][i])) {
-            errorReturn(stderr, E_INVALID_PLAYER_COUNT);
+            error_return(stderr, E_INVALID_PLAYER_COUNT);
         }
     }
     playersCount = atoi(argv[1]);
     if (1 > playersCount) {
-        errorReturn(stderr, E_INVALID_PLAYER_COUNT);
+        error_return(stderr, E_INVALID_PLAYER_COUNT);
     }
 
     /*Check for valid player ID*/
     for (i = 0; i < strlen(argv[2]); i++) {
         if (!isdigit(argv[2][i])) {
-            errorReturn(stderr, E_INVALID_PLAYER_ID);
+            error_return(stderr, E_INVALID_PLAYER_ID);
         }
     }
     playerID = atoi(argv[2]);
     if (playersCount <= playerID) {
-        errorReturn(stderr, E_INVALID_PLAYER_ID);
+        error_return(stderr, E_INVALID_PLAYER_ID);
     }
     ownId = playerID;
-    money = 7;
+    dealer_reset_player(&thisPlayer);
+    for (i = 0; i < playersCount; i++) {
+        dealer_reset_player(otherPlayers + i);
+    }
 
     init_player_positions(playersCount);
 

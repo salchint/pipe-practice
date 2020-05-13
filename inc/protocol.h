@@ -18,6 +18,11 @@
 #endif
 
 /*
+ *Maximum number of players.
+ */
+#define MAX_PLAYERS 1024ul
+
+/*
  *Site types.
  *MO .. Gain 3 Money.
  *V1 .. Gain 1 Point for each visited V1 at the end of the game.
@@ -62,6 +67,7 @@ typedef struct {
     int c;
     int d;
     int e;
+    int overallCards;
 } Player;
 
 
@@ -543,7 +549,8 @@ void player_update_position(int id, int playersCount, int* positions,
  *Deserialize the move operation of the given player for own book-keeping.
  */
 void player_process_move_broadcast(const char* command, int* positions,
-        int* rankings, int playersCount, int ownId, Player* thisPlayer) {
+        int* rankings, int playersCount, int ownId, Player* thisPlayer,
+        Player** otherPlayers) {
     int id = 0;
     int siteIdx = 0;
     int pointDiff = 0;
@@ -559,8 +566,12 @@ void player_process_move_broadcast(const char* command, int* positions,
 
     if (ownId == id) {
         thisPlayer->money += moneyDiff;
+        thisPlayer->overallCards += 1;
     } else {
         player_update_position(id, playersCount, positions, rankings, siteIdx);
+        if (otherPlayers) {
+            otherPlayers[id]->overallCards += 1;
+        }
     }
 }
 

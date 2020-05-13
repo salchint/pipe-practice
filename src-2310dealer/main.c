@@ -11,10 +11,6 @@
 #include "../inc/protocol.h"
 
 /*
- *Maximum number of players.
- */
-#define MAX_PLAYERS 1024ul
-/*
  *The write end of a pipe.
  */
 #define WRITE_END 1
