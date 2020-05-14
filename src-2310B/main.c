@@ -26,12 +26,12 @@ int ownId;
 /*
  *This player's earnings.
  */
-Player thisPlayer;
+Player* thisPlayer;
 
 /*
  *Book-keeping representation of participating players.
  */
-Player otherPlayers[MAX_PLAYERS];
+Player* players;
 
 
 /*
@@ -92,7 +92,7 @@ unsigned int rule_odd_money(int playersCount, unsigned int barrierAhead) {
     unsigned int moSiteAhead = -1u;
     unsigned int ownPosition = playerPositions[ownId];
 
-    if (1 == (thisPlayer.money % 2)) {
+    if (1 == (thisPlayer->money % 2)) {
         moSiteAhead =  (unsigned int)player_find_x_site_ahead(MO, ownPosition,
                 &path);
         if (moSiteAhead < barrierAhead) {
@@ -111,7 +111,7 @@ int get_max_collected_cards(int playersCount) {
 
     for (i = 0; i < playersCount; i++) {
         if (ownId != i) {
-            maxCards = MAX(maxCards, otherPlayers[i].overallCards);
+            maxCards = MAX(maxCards, players[i].overallCards);
         }
     }
     return maxCards;
@@ -131,8 +131,8 @@ unsigned int rule_draw_card(int playersCount, unsigned int barrierAhead) {
             &path);
     if (riSiteAhead < barrierAhead) {
         maxCards = get_max_collected_cards(playersCount);
-        if (thisPlayer.overallCards > maxCards
-            || MAX(thisPlayer.overallCards, maxCards) == 0) {
+        if (thisPlayer->overallCards > maxCards
+            || MAX(thisPlayer->overallCards, maxCards) == 0) {
             return riSiteAhead;
         }
     }
@@ -242,8 +242,7 @@ int process_command(const char* command, int playersCount) {
         make_move(playersCount);
     } else if (0 == strncmp("HAP", command, 3u)) {
         player_process_move_broadcast(command, playerPositions, playerRankings,
-                playersCount, ownId, &thisPlayer, (Player**)&otherPlayers,
-                path.siteCount);
+                playersCount, ownId, thisPlayer, &players, &path);
     } else {
         error_return(stderr, E_COMMS_ERROR);
     }
@@ -303,15 +302,17 @@ int main(int argc, char* argv[]) {
         error_return(stderr, E_INVALID_PLAYER_ID);
     }
     ownId = playerID;
-    dealer_reset_player(&thisPlayer);
-    for (i = 0; i < playersCount; i++) {
-        dealer_reset_player(otherPlayers + i);
+    players = malloc(MAX_PLAYERS * sizeof(Player));
+    thisPlayer = &(players[ownId]);
+    for (i = 0; i < MAX_PLAYERS; i++) {
+        dealer_reset_player(&(players[i]));
     }
 
     init_player_positions(playersCount);
 
     run_game(playersCount);
 
+    free(players);
     free(playerPositions);
     free(playerRankings);
 

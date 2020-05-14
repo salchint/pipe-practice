@@ -20,7 +20,7 @@
 /*
  *Maximum number of players.
  */
-#define MAX_PLAYERS 1024ul
+#define MAX_PLAYERS 1024u
 
 /*
  *Site types.
@@ -546,17 +546,77 @@ void player_update_position(int id, int playersCount, int* positions,
 }
 
 /*
+ *Print the given player's statistics.
+ */
+void player_print_earnings(FILE* output, int id, const Player* player) {
+    fprintf(output,
+        "Player %d Money=%d V1=%d V2=%d Points=%d A=%d B=%d C=%d D=%d E=%d\n",
+        id, player->money, player->v1, player->v2, player->points,
+        player->a, player->b, player->c, player->d, player->e);
+}
+
+/*
+ *Update the given player's earnings.
+ */
+void dealer_calculate_player_earnings(int id, int targetSite, int* pointDiff,
+        int* moneyDiff, int* newCard, Path* path, Player* player) {
+    *pointDiff = 0;
+    *moneyDiff = 0;
+    *newCard = 0;
+
+    switch (path->sites[targetSite].type) {
+        case MO:
+            player->money += 3;
+            *moneyDiff = 3;
+            break;
+        case DO:
+            *pointDiff = (int)(player->money / 2);
+            player->points += *pointDiff;
+            *moneyDiff = -(player->money);
+            player->money = 0;
+            break;
+        case V1:
+            player->v1 += 1;
+            break;
+        case V2:
+            player->v2 += 1;
+            break;
+        default:
+            break;
+    }
+}
+
+/*
+ *Update the given player's reported earnings.
+ */
+void player_calculate_player_earnings(int id, int targetSite, Path* path,
+        Player* player) {
+
+    switch (path->sites[targetSite].type) {
+        case V1:
+            player->v1 += 1;
+            break;
+        case V2:
+            player->v2 += 1;
+            break;
+        default:
+            break;
+    }
+}
+
+/*
  *Deserialize the move operation of the given player for own book-keeping.
  */
 void player_process_move_broadcast(const char* command, int* positions,
         int* rankings, int playersCount, int ownId, Player* thisPlayer,
-        Player** otherPlayers, int siteCount) {
+        Player** otherPlayers, Path* path) {
     int id = 0;
     int siteIdx = 0;
     int pointDiff = 0;
     int moneyDiff = 0;
     int newCard = 0;
     int readChars = 0;
+    Player* printPlayer = NULL;
 
     readChars = sscanf(command, "HAP%d,%d,%d,%d,%d",
             &id, &siteIdx, &pointDiff, &moneyDiff, &newCard);
@@ -566,20 +626,34 @@ void player_process_move_broadcast(const char* command, int* positions,
     if (!(0 <= id && id < playersCount)) {
         error_return(stderr, E_COMMS_ERROR);
     }
-    if (!(0 <= siteIdx && siteIdx < siteCount)) {
+    if (!(0 <= siteIdx && siteIdx < (int)path->siteCount)) {
         error_return(stderr, E_COMMS_ERROR);
     }
 
     if (ownId == id) {
-        thisPlayer->money += moneyDiff;
-        thisPlayer->overallCards += 1;
+        printPlayer = thisPlayer;
     } else {
         player_update_position(id, playersCount, positions, rankings, siteIdx);
-        if (otherPlayers) {
-            otherPlayers[id]->overallCards += 1;
-        }
+        printPlayer = (*otherPlayers) + id;
+
+        /*
+         *fprintf(stderr, "Player stats: pos=%d money=%d cards=%d points=%d\n",
+         *    siteIdx,
+         *    (*otherPlayers)[id].money,
+         *    (*otherPlayers)[id].overallCards,
+         *    (*otherPlayers)[id].points
+         *    );
+         */
     }
+    printPlayer->money += moneyDiff;
+    printPlayer->overallCards += (newCard == 0) ? 0 : 1;
+
+    player_calculate_player_earnings(id, siteIdx, path, printPlayer);
+    player_print_earnings(stderr, id, printPlayer);
+    player_print_path(stderr, path, playersCount, path->siteCount,
+            positions, rankings, 0);
 }
+
 
 /*
  *Initialize all the player structure's fields.

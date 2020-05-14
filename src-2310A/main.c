@@ -26,7 +26,11 @@ int ownId;
 /*
  *This player's earnings.
  */
-Player thisPlayer;
+Player* thisPlayer;
+/*
+ *Array of players used for book-keeping.
+ */
+Player* players;
 
 /*
  *Initialize the global field representing all players' positions.
@@ -67,7 +71,7 @@ unsigned int calculate_move_to(int playersCount, unsigned int ownPosition,
     unsigned int siteToGo = -1u;
 
     /*Rule #1: Go to next Do if you have money*/
-    if (0 < thisPlayer.money) {
+    if (0 < thisPlayer->money) {
         doSiteAhead = player_find_x_site_ahead(DO, ownPosition, &path);
         if (-1 != doSiteAhead) {
             siteToGo = doSiteAhead;
@@ -148,7 +152,7 @@ int process_command(const char* command, int playersCount) {
         make_move(playersCount);
     } else if (0 == strncmp("HAP", command, 3u)) {
         player_process_move_broadcast(command, playerPositions, playerRankings,
-                playersCount, ownId, &thisPlayer, NULL, path.siteCount);
+                playersCount, ownId, thisPlayer, &players, &path);
     } else {
         error_return(stderr, E_COMMS_ERROR);
     }
@@ -208,12 +212,17 @@ int main(int argc, char* argv[]) {
         error_return(stderr, E_INVALID_PLAYER_ID);
     }
     ownId = playerID;
-    dealer_reset_player(&thisPlayer);
+    players = malloc(MAX_PLAYERS * sizeof(Player));
+    thisPlayer = &(players[ownId]);
+    for (i = 0; i < MAX_PLAYERS; i++) {
+        dealer_reset_player(&(players[i]));
+    }
 
     init_player_positions(playersCount);
 
     run_game(playersCount);
 
+    free(players);
     free(playerPositions);
     free(playerRankings);
 

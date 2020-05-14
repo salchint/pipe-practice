@@ -154,43 +154,6 @@ void move_player(int id, int targetSite, int* positions, int* rankings) {
     positions[id] = targetSite;
     rankings[id] = ranking;
 }
-
-/*
- *Update the given player's earnings.
- */
-void calculate_player_earnings(int id, int targetSite, int* pointDiff,
-        int* moneyDiff, int* newCard) {
-    *pointDiff = 0;
-    *moneyDiff = 0;
-    *newCard = 0;
-
-    switch (path.sites[targetSite].type) {
-        case MO:
-            players[id].money += 3;
-            *moneyDiff = 3;
-            break;
-        case DO:
-            *pointDiff = (int)(players[id].money / 2);
-            players[id].points += *pointDiff;
-            *moneyDiff = -(players[id].money);
-            players[id].money = 0;
-            break;
-        case V1:
-            players[id].v1 += 1;
-            break;
-        case V2:
-            players[id].v2 += 1;
-            break;
-        default:
-            break;
-    }
-    fprintf(stdout,
-        "Player %d Money=%d V1=%d V2=%d Points=%d A=%d B=%d C=%d D=%d E=%d\n",
-        id, players[id].money, players[id].v1, players[id].v2,
-        players[id].points, players[id].a, players[id].b, players[id].c,
-        players[id].d, players[id].e);
-}
-
 /*
  *Listen for the next move from the given player.
  *Returns zero in case the game has ended, non-zero else.
@@ -216,8 +179,9 @@ int receive_next_move(FILE* readStream, int id, int* positions, int* rankings) {
     }
 
     move_player(id, targetSite, positions, rankings);
-    calculate_player_earnings(id, targetSite, &pointDiff, &moneyDiff,
-            &newCard);
+    dealer_calculate_player_earnings(id, targetSite, &pointDiff, &moneyDiff,
+            &newCard, &path, players + id);
+    player_print_earnings(stdout, id, players + id);
     player_print_path(stdout, &path, playersCount, path.siteCount,
             positions, rankings, 0);
     dealer_broadcast_player_move(broadcastStreams, playersCount, id,
