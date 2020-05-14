@@ -507,7 +507,8 @@ unsigned int player_get_site_usage(const int* positions, int playersCount,
  *Returns 1 if successful, 0 if the site is full.
  */
 int player_forward_to(FILE* output, int siteIdx, int barrierIdx,
-        int playersCount, int* positions, int ownId, Path* path) {
+        int playersCount, int* positions, int* rankings, int ownId,
+        Path* path) {
     int siteUsage = 0;
 
     siteIdx = MIN(siteIdx, barrierIdx);
@@ -520,13 +521,13 @@ int player_forward_to(FILE* output, int siteIdx, int barrierIdx,
      *        path->sites[siteIdx].capacity, siteUsage);
      */
 
-
     if (path->sites[siteIdx].capacity <= siteUsage) {
         /*This site is full*/
         return 0;
     }
 
     positions[ownId] = siteIdx;
+    rankings[ownId] = siteUsage;
     fprintf(output, "DO%d\n", siteIdx);
     fflush(output);
     return 1;
@@ -646,6 +647,7 @@ void player_process_move_broadcast(const char* command, int* positions,
          */
     }
     printPlayer->money += moneyDiff;
+    printPlayer->points += pointDiff;
     printPlayer->overallCards += (newCard == 0) ? 0 : 1;
 
     player_calculate_player_earnings(id, siteIdx, path, printPlayer);

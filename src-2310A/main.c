@@ -132,7 +132,8 @@ void make_move(int playersCount) {
         if (-1u != siteToGo) {
             /*Make sure to not move beyond the end of the path*/
             moved = player_forward_to(stdout, siteToGo, barrierAhead,
-                    playersCount, playerPositions, ownId, &path);
+                    playersCount, playerPositions, playerRankings, ownId,
+                    &path);
         }
         ownPosition = siteToGo;
     } while (!moved && (-1 != siteToGo));
