@@ -178,6 +178,8 @@ void run_game(int playersCount) {
         }
         run = process_command(command, playersCount);
     }
+
+    player_print_scores(stderr, playersCount, players);
 }
 
 int main(int argc, char* argv[]) {

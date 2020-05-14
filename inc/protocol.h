@@ -682,5 +682,23 @@ int dealer_is_finished(int playersCount, int siteCount,
     return 0;
 }
 
+/*
+ *Print the final scores of all players.
+ */
+void player_print_scores(FILE* output, int playersCount, Player* players) {
+    int i = 0;
+
+    fprintf(output, "Scores: ");
+    for (i = 0; i < playersCount; i++) {
+        players[i].points += players[i].v1;
+        players[i].points += players[i].v2;
+        fprintf(output, "%d", players[i].points);
+        if (i < playersCount - 1) {
+            fputc(',', output);
+        }
+    }
+    fputc('\n', output);
+}
+
 #endif
 

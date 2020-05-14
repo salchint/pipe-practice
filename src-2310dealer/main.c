@@ -190,21 +190,6 @@ int receive_next_move(FILE* readStream, int id, int* positions, int* rankings) {
     return dealer_is_finished(playersCount, path.siteCount, positions, rankings);
 }
 
-void print_scores(int playersCount) {
-    int i = 0;
-
-    fprintf(stdout, "Scores: ");
-    for (i = 0; i < playersCount; i++) {
-        players[i].points += players[i].v1;
-        players[i].points += players[i].v2;
-        fprintf(stdout, "%d", players[i].points);
-        if (i < playersCount - 1) {
-            fputc(',', stdout);
-        }
-    }
-    fputc('\n', stdout);
-}
-
 /*
  *Execute the dealer's business logic.
  */
@@ -245,7 +230,7 @@ void run_dealer() {
 
     /*Finally, quit all the players and print the scores*/
     dealer_broadcast_end(broadcastStreams, playersCount);
-    print_scores(playersCount);
+    player_print_scores(stdout, playersCount, players);
 }
 
 /*
