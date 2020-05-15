@@ -62,10 +62,9 @@ void getPath(int playersCount) {
  *Rule: If the next site is not full and all other players are on later sites
  *than us, move forward one site.
  */
-unsigned int rule_we_are_last(int playersCount) {
+unsigned int rule_we_are_last(int playersCount, int ownPosition) {
     int i = 0;
     int siteUsage = 0;
-    unsigned int ownPosition = playerPositions[ownId];
 
     siteUsage = player_get_site_usage(playerPositions, playersCount,
             ownPosition + 1);
@@ -88,9 +87,9 @@ unsigned int rule_we_are_last(int playersCount) {
  *Rule: If we have an odd amount of money, and there is a Mo between us and the
  *next barrier, then go there.
  */
-unsigned int rule_odd_money(int playersCount, unsigned int barrierAhead) {
+unsigned int rule_odd_money(int playersCount, unsigned int barrierAhead,
+        int ownPosition) {
     unsigned int moSiteAhead = -1u;
-    unsigned int ownPosition = playerPositions[ownId];
 
     if (1 == (thisPlayer->money % 2)) {
         moSiteAhead =  (unsigned int)player_find_x_site_ahead(MO, ownPosition,
@@ -122,12 +121,12 @@ int get_max_collected_cards(int playersCount) {
  *Rule: If we have the most cards or if everyone has zero cards and there is a
  *Ri between us and the next barrier, then go there.
  */
-unsigned int rule_draw_card(int playersCount, unsigned int barrierAhead) {
+unsigned int rule_draw_card(int playersCount, unsigned int barrierAhead,
+        int ownPosition) {
     unsigned int riSiteAhead = -1u;
-    unsigned int ownPosition = playerPositions[ownId];
     int maxCards = 0;
 
-    riSiteAhead =  (unsigned int)player_find_x_site_ahead(MO, ownPosition,
+    riSiteAhead =  (unsigned int)player_find_x_site_ahead(RI, ownPosition,
             &path);
     if (riSiteAhead < barrierAhead) {
         maxCards = get_max_collected_cards(playersCount);
@@ -143,9 +142,9 @@ unsigned int rule_draw_card(int playersCount, unsigned int barrierAhead) {
  *Determine the next site according to this rule and return it.
  *Rule: If there is a V2 between us and the next barrier, then go there.
  */
-unsigned int rule_goto_v2(int playersCount, unsigned int barrierAhead) {
+unsigned int rule_goto_v2(int playersCount, unsigned int barrierAhead,
+        int ownPosition) {
     unsigned int v2SiteAhead = -1u;
-    unsigned int ownPosition = playerPositions[ownId];
 
     v2SiteAhead =  (unsigned int)player_find_x_site_ahead(V2, ownPosition,
             &path);
@@ -160,14 +159,12 @@ unsigned int rule_goto_v2(int playersCount, unsigned int barrierAhead) {
  *Determine the next site according to this rule and return it.
  *Rule: Move forward to the earliest site which has room.
  */
-unsigned int rule_next_free(int playersCount) {
+unsigned int rule_next_free(int playersCount, int ownPosition) {
     unsigned int i = 0;
     int siteUsage = 0;
-    unsigned int ownPosition = playerPositions[ownId];
 
     for (i = ownPosition + 1; i < path.siteCount; i++) {
-        siteUsage = player_get_site_usage(playerPositions, playersCount,
-                ownPosition + 1);
+        siteUsage = player_get_site_usage(playerPositions, playersCount, i);
         if (siteUsage < path.sites[i].capacity) {
             return i;
         }
