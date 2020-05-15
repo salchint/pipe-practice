@@ -184,12 +184,30 @@ unsigned int calculate_move_to(int playersCount, unsigned int ownPosition,
     unsigned int barrierAhead) {
     unsigned int siteToGo = -1u;
 
-    siteToGo = rule_we_are_last(playersCount);
-    siteToGo = MIN(siteToGo, rule_odd_money(playersCount, barrierAhead));
-    siteToGo = MIN(siteToGo, rule_draw_card(playersCount, barrierAhead));
-    siteToGo = MIN(siteToGo, rule_goto_v2(playersCount, barrierAhead));
-    siteToGo = MIN(siteToGo, rule_next_free(playersCount));
+    siteToGo = rule_we_are_last(playersCount, ownPosition);
+    /*fprintf(stderr, "Chose %d", siteToGo);*/
 
+    if (-1u == siteToGo) {
+        siteToGo = rule_odd_money(playersCount, barrierAhead, ownPosition);
+        /*fprintf(stderr, " 2->%d", siteToGo);*/
+    }
+
+    if (-1u == siteToGo) {
+        siteToGo = rule_draw_card(playersCount, barrierAhead, ownPosition);
+        /*fprintf(stderr, " 3->%d", siteToGo);*/
+    }
+
+    if (-1u == siteToGo) {
+        siteToGo = rule_goto_v2(playersCount, barrierAhead, ownPosition);
+        /*fprintf(stderr, " 4->%d", siteToGo);*/
+    }
+
+    if (-1u == siteToGo) {
+        siteToGo = rule_next_free(playersCount, ownPosition);
+        /*fprintf(stderr, " 5->%d", siteToGo);*/
+    }
+
+    /*fprintf(stderr, " finally %d\n", siteToGo);*/
     return siteToGo;
 }
 
