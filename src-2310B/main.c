@@ -239,7 +239,6 @@ int process_command(const char* command, int playersCount) {
     } else if (0 == strncmp("DONE", command, 4u)) {
         return 0;
     } else if (0 == strncmp("YT", command, 2u)) {
-        fprintf(stderr, "B%d received YT\n", ownId);
         make_move(playersCount);
     } else if (0 == strncmp("HAP", command, 3u)) {
         player_process_move_broadcast(command, playerPositions, playerRankings,

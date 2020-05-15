@@ -23,6 +23,11 @@
 #define MAX_PLAYERS 1024u
 
 /*
+ *The number of card types (A..E).
+ */
+#define CARD_TYPES_COUNT 5u
+
+/*
  *Site types.
  *MO .. Gain 3 Money.
  *V1 .. Gain 1 Point for each visited V1 at the end of the game.
@@ -33,6 +38,17 @@
  */
 enum SiteTypes {
     MO, V1, V2, DO, RI, BARRIER, UNKNOWN_SITE_TYPE
+};
+
+/*
+ *Enumerate all card types.
+ */
+enum CardTypes {
+    CARD_A = 1,
+    CARD_B,
+    CARD_C,
+    CARD_D,
+    CARD_E,
 };
 
 /*
@@ -62,11 +78,7 @@ typedef struct {
     int v1;
     int v2;
     int points;
-    int a;
-    int b;
-    int c;
-    int d;
-    int e;
+    int cards[CARD_TYPES_COUNT + 1];
     int overallCards;
 } Player;
 
@@ -553,7 +565,12 @@ void player_print_earnings(FILE* output, int id, const Player* player) {
     fprintf(output,
         "Player %d Money=%d V1=%d V2=%d Points=%d A=%d B=%d C=%d D=%d E=%d\n",
         id, player->money, player->v1, player->v2, player->points,
-        player->a, player->b, player->c, player->d, player->e);
+        player->cards[CARD_A],
+        player->cards[CARD_B],
+        player->cards[CARD_C],
+        player->cards[CARD_D],
+        player->cards[CARD_E]
+        );
 }
 
 /*
@@ -648,7 +665,10 @@ void player_process_move_broadcast(const char* command, int* positions,
     }
     printPlayer->money += moneyDiff;
     printPlayer->points += pointDiff;
-    printPlayer->overallCards += (newCard == 0) ? 0 : 1;
+    if (newCard) {
+        printPlayer->overallCards += 1;
+        printPlayer->cards[newCard] += 1;
+    }
 
     player_calculate_player_earnings(id, siteIdx, path, printPlayer);
     player_print_earnings(stderr, id, printPlayer);
