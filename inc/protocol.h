@@ -743,6 +743,53 @@ int dealer_is_finished(int playersCount, int siteCount,
 }
 
 /*
+ *Calculate the number of additional points from collected cards.
+ */
+int dealer_calculate_card_points(Player* player) {
+    int cardCount = 0;
+    int points = 0;
+    int sum = 0;
+    int i = 0;
+
+    do {
+        cardCount = 0;
+        points = 0;
+
+        for (i = 1; i < CARD_TYPES_COUNT + 1; i++) {
+            if (player->cards[i]) {
+                cardCount +=1;
+                player->cards[i] -= 1;
+            }
+        }
+
+        switch (cardCount) {
+            case 5:
+                points = 10;
+                break;
+            case 4:
+                points = 7;
+                break;
+            case 3:
+                points = 5;
+                break;
+            case 2:
+                points = 3;
+                break;
+            case 1:
+                points = 1;
+                break;
+            default:
+                points = 0;
+        }
+
+        sum += points;
+        /*printf("count=%d points=%d sum=%d\n", cardCount, points, sum); */
+    } while (cardCount);
+
+    return sum;
+}
+
+/*
  *Print the final scores of all players.
  */
 void player_print_scores(FILE* output, int playersCount, Player* players) {
@@ -752,6 +799,7 @@ void player_print_scores(FILE* output, int playersCount, Player* players) {
     for (i = 0; i < playersCount; i++) {
         players[i].points += players[i].v1;
         players[i].points += players[i].v2;
+        players[i].points += dealer_calculate_card_points(players + i);
         fprintf(output, "%d", players[i].points);
         if (i < playersCount - 1) {
             fputc(',', output);

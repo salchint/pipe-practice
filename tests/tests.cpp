@@ -234,3 +234,33 @@ TEST_F(PlayerASuite, test_draw_cards) {
     EXPECT_EQ(1, dealer_draw_card_from_deck(&deck));
 }
 
+TEST_F(PlayerASuite, test_calculate_card_points) {
+    Player player;
+    player.cards[1] = 3;
+    player.cards[2] = 1;
+    player.cards[3] = 2;
+    player.cards[4] = 1;
+    player.cards[5] = 1;
+    EXPECT_EQ(14, dealer_calculate_card_points(&player));
+}
+
+TEST_F(PlayerASuite, test_calculate_card_points2) {
+    Player player;
+    player.cards[1] = 2;
+    player.cards[2] = 3;
+    player.cards[3] = 2;
+    player.cards[4] = 3;
+    player.cards[5] = 2;
+    EXPECT_EQ(23, dealer_calculate_card_points(&player));
+}
+
+TEST_F(PlayerASuite, test_calculate_card_points0) {
+    Player player;
+    player.cards[1] = 0;
+    player.cards[2] = 0;
+    player.cards[3] = 0;
+    player.cards[4] = 0;
+    player.cards[5] = 0;
+    EXPECT_EQ(0, dealer_calculate_card_points(&player));
+}
+
