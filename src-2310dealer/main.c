@@ -366,6 +366,7 @@ int main(int argc, char* argv[]) {
     int i = 0;
     FILE* pathStream = NULL;
     FILE* deckStream = NULL;
+    FILE* file = NULL;
 
     playersCount = 0;
     playerPositions = NULL;
@@ -379,6 +380,14 @@ int main(int argc, char* argv[]) {
     playerNames = malloc((argc - 3) * sizeof(char*));
     for (i = 3; i < argc; i++, playersCount++) {
         playerNames[i - 3] = argv[i];
+
+        file = fopen(playerNames[i - 3], "rb");
+        if (file) {
+            fclose(file);
+        } else {
+            error_return_dealer(stderr, E_DEALER_INVALID_START_PLAYER, 0);
+        }
+
     }
 
     for (i = 0; i < playersCount; i++) {
