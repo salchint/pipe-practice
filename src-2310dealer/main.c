@@ -20,13 +20,9 @@
 #define READ_END 0
 
 /*
- *Memory holding the card deck.
+ *Deck object holding a sequence of cards to draw.
  */
-char* deckBuffer = NULL;
-/*
- *Number of cards in the deck.
- */
-int deckSize = 0;
+Deck deck;
 /*
  *Path object deserialized from the path file.
  */
@@ -180,7 +176,7 @@ int receive_next_move(FILE* readStream, int id, int* positions, int* rankings) {
 
     move_player(id, targetSite, positions, rankings);
     dealer_calculate_player_earnings(id, targetSite, &pointDiff, &moneyDiff,
-            &newCard, &path, players + id);
+            &newCard, &path, players + id, &deck);
     player_print_earnings(stdout, id, players + id);
     player_print_path(stdout, &path, playersCount, path.siteCount,
             positions, rankings, 0);
@@ -308,7 +304,7 @@ void start_players(const char** playerNames) {
 /*
  *Request the path information from the dealer.
  */
-void getPath(FILE* stream) {
+void get_path(FILE* stream) {
     int success = E_OK;
 
     success = player_read_path(stream, playersCount, &path);
@@ -320,7 +316,7 @@ void getPath(FILE* stream) {
 /*
  *Handle the SIGHUP signal by interrupting the players.
  */
-void sigHandler(int signal) {
+void signal_Handler(int signal) {
     int i = 0;
 
     switch (signal) {
@@ -339,10 +335,10 @@ void sigHandler(int signal) {
 /*
  *Check the number of args and if the files are valid.
  */
-void verify_args(int argc, char* argv[], FILE** pathStream) {
+void verify_args(int argc, char* argv[], FILE** pathStream,
+        FILE** deckStream) {
     char* deckName = NULL;
     char* pathName = NULL;
-    FILE* deckStream = NULL;
 
     /*Check for valid number of parameters*/
     if (4 > argc) {
@@ -351,8 +347,8 @@ void verify_args(int argc, char* argv[], FILE** pathStream) {
 
     /*Check opening the deck file*/
     deckName = argv[1];
-    deckStream = fopen(deckName, "r");
-    if (NULL == deckStream) {
+    *deckStream = fopen(deckName, "r");
+    if (NULL == *deckStream) {
         error_return_dealer(stderr, E_DEALER_INVALID_DECK, 1);
     }
 
@@ -369,14 +365,15 @@ int main(int argc, char* argv[]) {
     char** playerNames = NULL;
     int i = 0;
     FILE* pathStream = NULL;
+    FILE* deckStream = NULL;
 
     playersCount = 0;
     playerPositions = NULL;
     playerRankings = NULL;
 
-    signal(SIGHUP, sigHandler);
+    signal(SIGHUP, signal_Handler);
 
-    verify_args(argc, argv, &pathStream);
+    verify_args(argc, argv, &pathStream, &deckStream);
 
     /*Remember the player program names*/
     playerNames = malloc((argc - 3) * sizeof(char*));
@@ -388,8 +385,10 @@ int main(int argc, char* argv[]) {
          dealer_reset_player(players + i);
     }
     init_player_positions();
-    getPath(pathStream);
+    get_path(pathStream);
     fclose(pathStream);
+    dealer_init_deck(deckStream, &deck);
+    fclose(deckStream);
 
     start_players((const char**)playerNames);
 
@@ -400,6 +399,7 @@ int main(int argc, char* argv[]) {
     free(playerPositions);
     free(playerRankings);
     free(playerNames);
+    free(deck.buffer);
 
     return EXIT_SUCCESS;
 }

@@ -222,3 +222,15 @@ TEST_F(PlayerASuite, test_site_usage2) {
     EXPECT_EQ(0, usage);
 }
 
+TEST_F(PlayerASuite, test_draw_cards) {
+    char cards[] = { 'A', 'B', 'C' };
+    Deck deck;
+    deck.buffer = cards;
+    deck.size = 3u;
+    deck.nextCard = deck.buffer;
+    EXPECT_EQ(1, dealer_draw_card_from_deck(&deck));
+    EXPECT_EQ(2, dealer_draw_card_from_deck(&deck));
+    EXPECT_EQ(3, dealer_draw_card_from_deck(&deck));
+    EXPECT_EQ(1, dealer_draw_card_from_deck(&deck));
+}
+

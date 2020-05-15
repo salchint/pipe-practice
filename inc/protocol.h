@@ -82,6 +82,14 @@ typedef struct {
     int overallCards;
 } Player;
 
+/*
+ *Descriptor of the card deck.
+ */
+typedef struct {
+    size_t size;
+    char* buffer;
+    char* nextCard;
+} Deck;
 
 
 /*
@@ -117,6 +125,13 @@ void reset_path(Path* path) {
     path->sites = NULL;
     path->siteCount = 0u;
     path->bufferLength = 0u;
+}
+
+/*
+ *Zero the fields of the deck instance.
+ */
+void reset_deck(Deck* deck) {
+    memset(deck, 0, sizeof(Deck));
 }
 
 /*
@@ -574,10 +589,28 @@ void player_print_earnings(FILE* output, int id, const Player* player) {
 }
 
 /*
+ *Draw the next card from the deck.
+ *Wrap around if we ran out of cards.
+ */
+int dealer_draw_card_from_deck(Deck* deck) {
+    char newCard = *deck->nextCard;
+
+    /*Convert to integer */
+    newCard -= 'A' - 1;
+
+    deck->nextCard += 1;
+    if ((deck->buffer + deck->size) <= deck->nextCard) {
+        deck->nextCard = deck->buffer;
+    }
+
+    return (int)newCard;
+}
+
+/*
  *Update the given player's earnings.
  */
 void dealer_calculate_player_earnings(int id, int targetSite, int* pointDiff,
-        int* moneyDiff, int* newCard, Path* path, Player* player) {
+        int* moneyDiff, int* newCard, Path* path, Player* player, Deck* deck) {
     *pointDiff = 0;
     *moneyDiff = 0;
     *newCard = 0;
@@ -598,6 +631,11 @@ void dealer_calculate_player_earnings(int id, int targetSite, int* pointDiff,
             break;
         case V2:
             player->v2 += 1;
+            break;
+        case RI:
+            *newCard = dealer_draw_card_from_deck(deck);
+            player->overallCards += 1;
+            player->cards[*newCard] += 1;
             break;
         default:
             break;
@@ -720,6 +758,26 @@ void player_print_scores(FILE* output, int playersCount, Player* players) {
         }
     }
     fputc('\n', output);
+}
+
+/*
+ *Build a new instance of a deck and initialize it with data from stream.
+ */
+void dealer_init_deck(FILE* stream, Deck* deck) {
+    int readChars = 0;
+
+    readChars = fscanf(stream, "%zu",
+        &(deck->size));
+    if (EOF == readChars || readChars < 1) {
+        error_return_dealer(stderr, E_DEALER_INVALID_DECK, 1);
+    }
+    deck->buffer = (char*)malloc((deck->size + 2) * sizeof(int));
+    deck->nextCard = deck->buffer;
+
+    if (!fgets(deck->buffer, deck->size + 1, stream)) {
+        free(deck->buffer);
+        error_return_dealer(stderr, E_DEALER_INVALID_DECK, 1);
+    }
 }
 
 #endif
