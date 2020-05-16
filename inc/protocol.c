@@ -21,10 +21,11 @@ int calculate_path_length(int playersCount, int siteCount) {
     maxDigitCountPlayers = (int)(1 + log10((double)playersCount));
     maxDigitCountSites = (int)(1 + log10((double)siteCount));
     return maxDigitCountSites                       /*site count*/
-        + 1                                         /*separator semi-colon*/
-        + siteCount * (2 + maxDigitCountPlayers)    /*site type and capacity*/
-        + 1                                         /*line break*/
-        + 1;                                        /*terminating '\0'*/
+            + 1                         /*separator semi-colon*/
+            /*site type and capacity*/
+            + siteCount * (2 + maxDigitCountPlayers)
+            + 1                         /*line break*/
+            + 1;                        /*terminating '\0'*/
 }
 
 /*
@@ -60,7 +61,7 @@ int build_path(FILE* stream, int playersCount, Path* path) {
     int readChars = 0;
     char separator = '\0';
 
-    if ( (path->bufferLength > 0) || (path->siteCount > 0) ) {
+    if ((path->bufferLength > 0) || (path->siteCount > 0)) {
         fprintf(stderr, "  !!! Path was not freed !!!\n");
     }
     reset_path(path);
@@ -105,10 +106,13 @@ void free_path(Path* path) {
  */
 int is_barrier(const char* site) {
     return ':' == site[0]
-        && ':' == site[1]
-        && '-' == site[2];
+            && ':' == site[1]
+            && '-' == site[2];
 }
 
+/*
+ *Convert site names to enumeration types.
+ */
 enum SiteTypes convert_site_type(const char* siteName) {
     if (0 == strcmp("Mo", siteName)) {
         return MO;
@@ -126,6 +130,9 @@ enum SiteTypes convert_site_type(const char* siteName) {
     return UNKNOWN_SITE_TYPE;
 }
 
+/*
+ *Convert site type enumeration to names.
+ */
 const char* convert_site_name(enum SiteTypes type) {
     switch (type) {
         case MO:
@@ -147,6 +154,8 @@ const char* convert_site_name(enum SiteTypes type) {
 
 /*
  *Validate and de-serialize the given path.
+ *Unusual long function: Breaking the path deserialization routine into pieces
+ *would only scatter the logic, but does not improve readability.
  */
 int deserialize_path(FILE* stream, Path* path, int playersCount) {
     int success = E_OK;
@@ -160,10 +169,6 @@ int deserialize_path(FILE* stream, Path* path, int playersCount) {
     siteName[2] = '\0';
 
     if (!fgets(path->buffer, path->bufferLength, stream)) {
-        /*
-         *printf("Failed to read file: %d\n", errno);
-         *printf("Path: %s\n", path->buffer);
-         */
         free_path(path);
         return E_INVALID_PATH;
     }
@@ -171,9 +176,6 @@ int deserialize_path(FILE* stream, Path* path, int playersCount) {
     /*First there needs to be a barrier */
     pos = path->buffer;
     if (!is_barrier(pos)) {
-        /*
-         *printf("Failed to read barrier at beginning\n");
-         */
         free_path(path);
         return E_INVALID_PATH;
     }
@@ -183,7 +185,8 @@ int deserialize_path(FILE* stream, Path* path, int playersCount) {
     siteIdx += 1;
 
     /*Deserialize all the sites*/
-    for (i = 0; i < (int)path->siteCount && '\n' != *pos && '\0' != *pos; i++) {
+    for (i = 0; i < (int)path->siteCount && '\n' != *pos
+            && '\0' != *pos; i++) {
         if (is_barrier(pos)) {
             path->sites[siteIdx].capacity = playersCount;
             path->sites[siteIdx].type = BARRIER;
@@ -193,9 +196,6 @@ int deserialize_path(FILE* stream, Path* path, int playersCount) {
             readChars = sscanf(pos, "%c%c%d;",
                     &siteName[0], &siteName[1], &siteCapacity);
             if (EOF == readChars || readChars < 3) {
-                /*
-                 *printf("Failed to read site %d\n", i);
-                 */
                 free_path(path);
                 return E_INVALID_PATH;
             }
@@ -207,9 +207,6 @@ int deserialize_path(FILE* stream, Path* path, int playersCount) {
 
         /*Verify the buffer boundary*/
         if (path->buffer + path->bufferLength < pos) {
-            /*
-             *printf("Failed to verify buffer boundary\n");
-             */
             free_path(path);
             return E_INVALID_PATH;
         }
@@ -243,7 +240,8 @@ void calculate_initial_rankings(const int* positions, int* rankings,
     memset(rankings, 0, playersCount * sizeof(int));
 
     for (playerIdx = playersCount - 1; 0 <= playerIdx; playerIdx--) {
-        for (higherIdx = playerIdx + 1; higherIdx < playersCount; higherIdx++) {
+        for (higherIdx = playerIdx + 1; higherIdx < playersCount;
+                higherIdx++) {
             /*Increment this player's ranking if there is a "higher" player*/
             /*on the same position.*/
             if (positions[higherIdx] == positions[playerIdx]) {
@@ -269,10 +267,10 @@ int** alloc_map(int rows, int columns) {
     row = (int**)malloc(headerSize + bodySize);
     memset(row, -1, headerSize + bodySize);
 
-    buf  = (int*)(row + rows);
+    buf = (int*)(row + rows);
     row[0] = buf;
     for(i = 1; i < rows; i++) {
-        row[i] = row[i-1] + columns;
+        row[i] = row[i - 1] + columns;
     }
 
     return row;
@@ -305,7 +303,7 @@ void dealer_broadcast_player_move(FILE** streams, int playersCount,
 
     for (i = 0; i < playersCount; i++) {
         fprintf(streams[i], "HAP%d,%d,%d,%d,%d\n",
-            id, targetSite, pointDiff, moneyDiff, newCard);
+                id, targetSite, pointDiff, moneyDiff, newCard);
         fflush(streams[i]);
     }
 }
@@ -426,7 +424,7 @@ int player_find_x_site_ahead(enum SiteTypes type, int ownPosition,
     size_t i = 0;
     for (i = ownPosition + 1; i < path->siteCount; i++) {
         if (type == path->sites[i].type) {
-                return i;
+            return i;
         }
     }
     return -1;
@@ -497,14 +495,15 @@ void player_update_position(int id, int playersCount, int* positions,
  */
 void player_print_earnings(FILE* output, int id, const Player* player) {
     fprintf(output,
-        "Player %d Money=%d V1=%d V2=%d Points=%d A=%d B=%d C=%d D=%d E=%d\n",
-        id, player->money, player->v1, player->v2, player->points,
-        player->cards[CARD_A],
-        player->cards[CARD_B],
-        player->cards[CARD_C],
-        player->cards[CARD_D],
-        player->cards[CARD_E]
-        );
+            "Player %d "
+            "Money=%d V1=%d V2=%d Points=%d A=%d B=%d C=%d D=%d E=%d\n",
+            id, player->money, player->v1, player->v2, player->points,
+            player->cards[CARD_A],
+            player->cards[CARD_B],
+            player->cards[CARD_C],
+            player->cards[CARD_D],
+            player->cards[CARD_E]
+            );
 }
 
 /*
@@ -653,7 +652,7 @@ int dealer_is_finished(int playersCount, int siteCount,
     /*with the maximum possible ranking;*/
     for (i = 0; i < playersCount; i++) {
         if ((playersCount - 1) == rankings[i]) {
-            if ((siteCount - 1) == positions[i]){
+            if ((siteCount - 1) == positions[i]) {
                 return 1;
             }
         }
@@ -676,7 +675,7 @@ int dealer_calculate_card_points(Player* player) {
 
         for (i = 1; i < (int)CARD_TYPES_COUNT + 1; i++) {
             if (player->cards[i]) {
-                cardCount +=1;
+                cardCount += 1;
                 player->cards[i] -= 1;
             }
         }
@@ -702,7 +701,6 @@ int dealer_calculate_card_points(Player* player) {
         }
 
         sum += points;
-        /*printf("count=%d points=%d sum=%d\n", cardCount, points, sum); */
     } while (cardCount);
 
     return sum;
@@ -734,7 +732,7 @@ void dealer_init_deck(FILE* stream, Deck* deck) {
     int readChars = 0;
 
     readChars = fscanf(stream, "%zu",
-        &(deck->size));
+            &(deck->size));
     if (EOF == readChars || readChars < 1) {
         error_return_dealer(stderr, E_DEALER_INVALID_DECK, 1);
     }

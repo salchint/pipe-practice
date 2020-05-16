@@ -45,7 +45,7 @@ void init_player_positions(int playersCount) {
 /*
  *Request the path information from the dealer.
  */
-void getPath(int playersCount) {
+void get_path(int playersCount) {
     int success = E_OK;
 
     player_request_path(stdout);
@@ -59,8 +59,8 @@ void getPath(int playersCount) {
  *Determine the target of the next move according to the player's strategy.
  *We start at the given current position not taking the site's capacity into
  *account.
- *ignoreMo: As this function might be called repeatedly, rule #2 only applies in the
- *first iteration.
+ *ignoreMo: As this function might be called repeatedly, rule #2 only applies
+ *in the first iteration.
  */
 unsigned int calculate_move_to(int playersCount, unsigned int ownPosition,
         int ignoreMo) {
@@ -89,9 +89,9 @@ unsigned int calculate_move_to(int playersCount, unsigned int ownPosition,
 
     /*Rule #3: Stop at the closest V1, V2 or barrier site.*/
     if (-1u == siteToGo) {
-        v1SiteAhead =  (unsigned int)player_find_x_site_ahead(V1, ownPosition,
+        v1SiteAhead = (unsigned int)player_find_x_site_ahead(V1, ownPosition,
                 &path);
-        v2SiteAhead =  (unsigned int)player_find_x_site_ahead(V2, ownPosition,
+        v2SiteAhead = (unsigned int)player_find_x_site_ahead(V2, ownPosition,
                 &path);
         barrierAhead = (unsigned int)player_find_x_site_ahead(BARRIER,
                 ownPosition, &path);
@@ -167,7 +167,7 @@ void run_game(int playersCount) {
     char command[100];
     int run = 1;
 
-    getPath(playersCount);
+    get_path(playersCount);
 
     player_print_path(stderr, &path, playersCount, path.siteCount,
             playerPositions, playerRankings, 1);

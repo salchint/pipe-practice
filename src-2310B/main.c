@@ -47,7 +47,7 @@ void init_player_positions(int playersCount) {
 /*
  *Request the path information from the dealer.
  */
-void getPath(int playersCount) {
+void get_path(int playersCount) {
     int success = E_OK;
 
     player_request_path(stdout);
@@ -73,7 +73,7 @@ unsigned int rule_we_are_last(int playersCount, int ownPosition) {
         if (0 == playerRankings[ownId]) {
             for (i = 0; i < playersCount; i++) {
                 if (ownPosition >= playerPositions[i] && ownId != i) {
-                   return -1u;
+                    return -1u;
                 }
             }
             return ownPosition + 1;
@@ -92,7 +92,7 @@ unsigned int rule_odd_money(int playersCount, unsigned int barrierAhead,
     unsigned int moSiteAhead = -1u;
 
     if (1 == (thisPlayer->money % 2)) {
-        moSiteAhead =  (unsigned int)player_find_x_site_ahead(MO, ownPosition,
+        moSiteAhead = (unsigned int)player_find_x_site_ahead(MO, ownPosition,
                 &path);
         if (moSiteAhead < barrierAhead) {
             return moSiteAhead;
@@ -126,12 +126,12 @@ unsigned int rule_draw_card(int playersCount, unsigned int barrierAhead,
     unsigned int riSiteAhead = -1u;
     int maxCards = 0;
 
-    riSiteAhead =  (unsigned int)player_find_x_site_ahead(RI, ownPosition,
+    riSiteAhead = (unsigned int)player_find_x_site_ahead(RI, ownPosition,
             &path);
     if (riSiteAhead < barrierAhead) {
         maxCards = get_max_collected_cards(playersCount);
         if (thisPlayer->overallCards > maxCards
-            || MAX(thisPlayer->overallCards, maxCards) == 0) {
+                || MAX(thisPlayer->overallCards, maxCards) == 0) {
             return riSiteAhead;
         }
     }
@@ -146,7 +146,7 @@ unsigned int rule_goto_v2(int playersCount, unsigned int barrierAhead,
         int ownPosition) {
     unsigned int v2SiteAhead = -1u;
 
-    v2SiteAhead =  (unsigned int)player_find_x_site_ahead(V2, ownPosition,
+    v2SiteAhead = (unsigned int)player_find_x_site_ahead(V2, ownPosition,
             &path);
     if (v2SiteAhead < barrierAhead) {
         return v2SiteAhead;
@@ -178,7 +178,7 @@ unsigned int rule_next_free(int playersCount, int ownPosition) {
  *account.
  */
 unsigned int calculate_move_to(int playersCount, unsigned int ownPosition,
-    unsigned int barrierAhead) {
+        unsigned int barrierAhead) {
     unsigned int siteToGo = -1u;
 
     siteToGo = rule_we_are_last(playersCount, ownPosition);
@@ -255,8 +255,8 @@ int process_command(const char* command, int playersCount) {
         return 0;
     } else if (0 == strncmp("YT", command, 2u)) {
         if (!('\0' == command[2]
-            || '\n' == command[2]
-            || EOF == command[2])) {
+                || '\n' == command[2]
+                || EOF == command[2])) {
             error_return(stderr, E_COMMS_ERROR);
         }
         make_move(playersCount);
@@ -276,7 +276,7 @@ void run_game(int playersCount) {
     char command[100];
     int run = 1;
 
-    getPath(playersCount);
+    get_path(playersCount);
 
     player_print_path(stderr, &path, playersCount, path.siteCount,
             playerPositions, playerRankings, 1);

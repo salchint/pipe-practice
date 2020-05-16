@@ -84,18 +84,18 @@ void init_player_positions() {
  */
 int open_stream(int playerId) {
     streamToPlayer[playerId][READ_END]
-        = fdopen(pipeToPlayerNo[playerId][READ_END], "r");
+            = fdopen(pipeToPlayerNo[playerId][READ_END], "r");
     streamToPlayer[playerId][WRITE_END]
-        = fdopen(pipeToPlayerNo[playerId][WRITE_END], "w");
+            = fdopen(pipeToPlayerNo[playerId][WRITE_END], "w");
     streamToDealer[playerId][READ_END]
-        = fdopen(pipeToDealerNo[playerId][READ_END], "r");
+            = fdopen(pipeToDealerNo[playerId][READ_END], "r");
     streamToDealer[playerId][WRITE_END]
-        = fdopen(pipeToDealerNo[playerId][WRITE_END], "w");
+            = fdopen(pipeToDealerNo[playerId][WRITE_END], "w");
 
-    if (! (streamToPlayer[playerId][READ_END]
-        || streamToPlayer[playerId][WRITE_END]
-        || streamToDealer[playerId][READ_END]
-        || streamToDealer[playerId][WRITE_END])) {
+    if (!(streamToPlayer[playerId][READ_END]
+            || streamToPlayer[playerId][WRITE_END]
+            || streamToDealer[playerId][READ_END]
+            || streamToDealer[playerId][WRITE_END])) {
         error_return_dealer(stderr, E_DEALER_INVALID_START_PLAYER, 0);
     }
 
@@ -108,27 +108,27 @@ int open_stream(int playerId) {
  */
 int calculate_next_player(const int* positions, const int* rankings) {
     int i = 0;
-    int minSite = INT_MAX ;
+    int minSite = INT_MAX;
     int maxRank = 0;
 
     /*Find the earliest used site*/
     for (i = 0; i < playersCount; i++) {
-       minSite = MIN(minSite, positions[i]);
+        minSite = MIN(minSite, positions[i]);
     }
 
     /*Find the highest ranking on that site*/
     for (i = 0; i < playersCount; i++) {
-       if (minSite == positions[i]) {
-          maxRank = MAX(maxRank, rankings[i]);
-       }
+        if (minSite == positions[i]) {
+            maxRank = MAX(maxRank, rankings[i]);
+        }
     }
 
     /*Find the player on the evaluated site and ranking*/
     for (i = 0; i < playersCount; i++) {
-       if (minSite == positions[i]
-           && maxRank == rankings[i]) {
-           return i;
-       }
+        if (minSite == positions[i]
+                && maxRank == rankings[i]) {
+            return i;
+        }
     }
 
     return 0;
@@ -150,11 +150,13 @@ void move_player(int id, int targetSite, int* positions, int* rankings) {
     positions[id] = targetSite;
     rankings[id] = ranking;
 }
+
 /*
  *Listen for the next move from the given player.
  *Returns zero in case the game has ended, non-zero else.
  */
-int receive_next_move(FILE* readStream, int id, int* positions, int* rankings) {
+int receive_next_move(FILE* readStream, int id, int* positions,
+        int* rankings) {
     char buffer[100];
     int targetSite = 0;
     int readChars = 0;
@@ -183,7 +185,8 @@ int receive_next_move(FILE* readStream, int id, int* positions, int* rankings) {
     dealer_broadcast_player_move(broadcastStreams, playersCount, id,
             targetSite, pointDiff, moneyDiff, newCard);
 
-    return dealer_is_finished(playersCount, path.siteCount, positions, rankings);
+    return dealer_is_finished(playersCount, path.siteCount, positions,
+            rankings);
 }
 
 /*
@@ -220,8 +223,8 @@ void run_dealer() {
         /*Next, let the player make his move, which is furtherst back*/
         nextPlayer = calculate_next_player(playerPositions, playerRankings);
         dealer_request_next_move(streamToPlayer[nextPlayer][WRITE_END]);
-        run = receive_next_move(streamToDealer[nextPlayer][READ_END], nextPlayer,
-                playerPositions, playerRankings) ? 0 : 1;
+        run = receive_next_move(streamToDealer[nextPlayer][READ_END],
+                nextPlayer, playerPositions, playerRankings) ? 0 : 1;
     }
 
     /*Finally, quit all the players and print the scores*/
@@ -316,7 +319,7 @@ void get_path(FILE* stream) {
 /*
  *Handle the SIGHUP signal by interrupting the players.
  */
-void signal_Handler(int signal) {
+void signal_handler(int signal) {
     int i = 0;
 
     switch (signal) {
@@ -372,7 +375,7 @@ int main(int argc, char* argv[]) {
     playerPositions = NULL;
     playerRankings = NULL;
 
-    signal(SIGHUP, signal_Handler);
+    signal(SIGHUP, signal_handler);
 
     verify_args(argc, argv, &pathStream, &deckStream);
 
@@ -391,7 +394,7 @@ int main(int argc, char* argv[]) {
     }
 
     for (i = 0; i < playersCount; i++) {
-         dealer_reset_player(players + i);
+        dealer_reset_player(players + i);
     }
     init_player_positions();
     get_path(pathStream);

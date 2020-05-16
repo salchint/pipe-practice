@@ -44,7 +44,7 @@ void error_return(FILE* destination, enum PlayerErrorCodes code) {
  *Print an error message to stderr and exit the program.
  */
 void error_return_dealer(FILE* destination, enum DealerErrorCodes code,
-    int dealerContext) {
+        int dealerContext) {
     fprintf(destination, "%s\n", dealerErrorTexts[code]);
     if (dealerContext) {
         exit(code);

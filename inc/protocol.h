@@ -15,8 +15,8 @@
 #include "../inc/errorReturn.h"
 
 #ifndef MAX
-#define MAX(a,b) (((a) > (b)) ? (a) : (b))
-#define MIN(a,b) (((a) < (b)) ? (a) : (b))
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 
 /*
@@ -93,73 +93,6 @@ typedef struct {
     char* nextCard;
 } Deck;
 
-
-/*
- *Calculate the maximum byte count of a given path.
- *Pass the number of players in the game and the number of sites in the path.
-*/
-int calculate_path_length(int playersCount, int siteCount);
-
-/*
- *Initialize all the player structure's fields.
- */
-void reset_player(Player* player);
-
-/*
- *Initialize all the path structure's fields.
- */
-void reset_path(Path* path);
-
-/*
- *Zero the fields of the deck instance.
- */
-void reset_deck(Deck* deck);
-
-/*
- *Allocates memory for buffer and sites.
- */
-int build_path(FILE* stream, int playersCount, Path* path);
-
-/*
- *Deallocate the sites and the path buffer.
- */
-void free_path(Path* path);
-
-/*
- *Check if the current site is a barrier.
- */
-int is_barrier(const char* site);
-
-/*
- *Convert site names to enumerations.
- */
-enum SiteTypes convert_site_type(const char* siteName);
-
-/*
- *Convert site enumeration types to site names.
- */
-const char* convert_site_name(enum SiteTypes type);
-
-/*
- *Validate and de-serialize the given path.
- */
-int deserialize_path(FILE* stream, Path* path, int playersCount);
-
-/*
- *Verify the path's integrity.
- */
-int verify_path(Path* path);
-
-/*
- *Determine the rankings of players if they are on the same site.
- */
-void calculate_initial_rankings(const int* positions, int* rankings,
-        int playersCount);
-
-/*
- *Allocate the map as a contignuous chunk.
- */
-int** alloc_map(int rows, int columns);
 
 /*
  *Player asks the dealer for the path information.
