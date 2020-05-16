@@ -1,11 +1,30 @@
-#include "../inc/protocol.h"
 #include "../inc/errorReturn.h"
+//#include "../inc/errorReturn.c"
+#include "../inc/protocol.h"
+#include "../inc/protocol.c"
 #include <vector>
 #include <array>
 #include <string>
 #include <iostream>
 
 #include <unistd.h>
+
+// Fake implementation
+void error_return(FILE* destination, enum PlayerErrorCodes code) {
+    fprintf(destination, "%s\n", playerErrorTexts[code]);
+    exit(code);
+}
+
+// Fake implementation
+void error_return_dealer(FILE* destination, enum DealerErrorCodes code,
+    int dealerContext) {
+    fprintf(destination, "%s\n", dealerErrorTexts[code]);
+    if (dealerContext) {
+        exit(code);
+    }
+    _exit(code);
+}
+
 
 using std::string;
 

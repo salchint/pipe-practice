@@ -7,12 +7,14 @@ file(
     GLOB
     headers
     *.h
+    ../inc/*.h
 )
 
 file(
     GLOB
     sources
     *.c
+    ../inc/*.c
 )
 
 add_executable(

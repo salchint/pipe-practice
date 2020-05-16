@@ -42,6 +42,7 @@ file(
     GLOB
     test_files
     *.cpp
+    ../inc/*.c
 )
 
 add_executable(Tests-pipe-practice
